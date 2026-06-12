@@ -125,20 +125,22 @@ export default function NegotiationPanel({
 
       <div className="chat-area" ref={chatRef}>
         {messages.map((m, i) => {
-          if (m.kind === 'offer')
+          if (m.kind === 'offer') {
+            const isAgent = String(m.buyer ?? '').startsWith('agent:');
             return (
-              <div className="cmsg right human-msg" key={i}>
-                <div className="cmsg-av human">YOU</div>
+              <div className={`cmsg right ${isAgent ? 'buyer-agent-msg' : 'human-msg'}`} key={i}>
+                <div className={`cmsg-av ${isAgent ? 'buyer-agent' : 'human'}`}>{isAgent ? 'BA' : 'YOU'}</div>
                 <div className="cmsg-body">
                   <div className="cmsg-bubble">
                     {m.price} HBAR — “{m.argument}”
                   </div>
                   <div className="cmsg-meta">
-                    {buyerLabel ?? t('judge')} · {time(m.consensusAt)} · seq {m.sequence}
+                    {isAgent ? `${t('buyerAgent')} · ${m.buyer.slice(6)}` : buyerLabel ?? t('judge')} · {time(m.consensusAt)} · seq {m.sequence}
                   </div>
                 </div>
               </div>
             );
+          }
           if (m.kind === 'reasoning')
             return (
               <div className="cmsg left" key={i}>

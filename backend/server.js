@@ -13,6 +13,7 @@ import {
   TopicMessageSubmitTransaction,
 } from '@hashgraph/sdk';
 import { fetchTopicMessages } from '../agent/hedera.js';
+import { deployBuyerAgent, getSession } from './buyer-agent.js';
 
 const PORT = Number(process.env.PORT || 8787);
 const TOPIC = process.env.HCS10_NEGOTIATION_TOPIC;
@@ -122,6 +123,31 @@ app.post('/api/offer', async (req, res) => {
     console.error('[api/offer]', err.message);
     res.status(500).json({ error: 'failed to publish offer' });
   }
+});
+
+// Deploy an autonomous buyer agent for a negotiation.
+app.post('/api/deploy-buyer', (req, res) => {
+  try {
+    const { negotiationId, strategy = 'charming', maxBudget } = req.body || {};
+    if (!negotiationId || !Number(maxBudget)) {
+      return res.status(400).json({ error: 'negotiationId and maxBudget are required' });
+    }
+    const session = deployBuyerAgent({
+      client: operator,
+      topicId: TOPIC,
+      state,
+      negotiationId,
+      strategy,
+      maxBudget: Number(maxBudget),
+    });
+    res.json({ ok: true, session });
+  } catch (err) {
+    res.status(409).json({ error: err.message });
+  }
+});
+
+app.get('/api/buyer-session/:id', (req, res) => {
+  res.json(getSession(req.params.id) ?? { status: 'none' });
 });
 
 // ── WebSocket ──
