@@ -7,6 +7,11 @@ import 'dotenv/config';
 import { evaluateOffer } from './evaluate.js';
 import { speakVerdict } from './voice.js';
 import { agentClient, fetchTopicMessages, publishMessage } from './hedera.js';
+import { escrowClient, releaseEscrow } from './escrow.js';
+
+// Testnet-budget guard: the on-chain settlement moves a symbolic amount no
+// matter what price was negotiated, so demos can't drain the faucet balance.
+const SETTLE_CAP_HBAR = Number(process.env.DEMO_SETTLE_HBAR || 1);
 
 const TOPIC = process.env.HCS10_NEGOTIATION_TOPIC;
 const POLL_MS = Number(process.env.AGENT_POLL_MS || 2500);
@@ -56,6 +61,38 @@ export async function handleOffer(offer) {
   });
 
   console.log(`[agent] verdict: ${verdict.decision} (p=${verdict.sellProbability}, ${verdict.source})`);
+
+  // Accepted deal: settle on-chain (capped) and publish the dramatic reveal.
+  if (verdict.decision === 'accept') {
+    try {
+      const settleAmount = Math.min(offer.price, SETTLE_CAP_HBAR);
+      const escrow = escrowClient();
+      const res = await releaseEscrow(
+        escrow,
+        process.env.SELLER_AGENT_ACCOUNT_ID,
+        settleAmount,
+        offer.negotiationId
+      );
+      escrow.close();
+      await publishMessage(client, TOPIC, {
+        type: 'settlement',
+        negotiationId: offer.negotiationId,
+        amountHbar: settleAmount,
+        negotiatedPrice: offer.price,
+        txId: res.txId,
+        status: res.status,
+      });
+      await publishMessage(client, TOPIC, {
+        type: 'reveal',
+        negotiationId: offer.negotiationId,
+        minPrice: ctx.minPrice,
+        acceptedPrice: offer.price,
+      });
+      console.log(`[agent] settled ${settleAmount} HBAR (cap ${SETTLE_CAP_HBAR}) — ${res.txId}`);
+    } catch (err) {
+      console.warn('[agent] settlement failed (verdict stands):', err.message);
+    }
+  }
   return verdict;
 }
 
@@ -93,11 +130,9 @@ async function loop() {
   }
 }
 
-if (process.argv[1].endsWith('seller-agent.js')) {
-  process.on('SIGINT', () => {
-    running = false;
-    client.close();
-    process.exit(0);
-  });
-  loop();
-}
+process.on('SIGINT', () => {
+  running = false;
+  client.close();
+  process.exit(0);
+});
+loop();
