@@ -30,8 +30,13 @@ Fonts: Space Grotesk (sans/UI), Space Mono (mono/data, hashes, prices, labels)
 - Mini App index.html served with Cache-Control: no-store (Telegram webview caches hard)
 - Real data replaces the simulated feed: WebSocket events from backend (mirror-node sourced)
 
-## Theming
-- kickoff.bot + Studio: DARK ONLY (identity + projector legibility)
-- Mini App: follows Telegram themeParams — `data-theme="light"` on <html> swaps tokens
-  (via @twa-dev/sdk: WebApp.colorScheme, listen to themeChanged event)
-- Light accent is darkened (#00A857) for contrast on white; role semantics unchanged
+## Theming — "eBay of agents" positioning
+Two audiences, one brand. Light = marketplace trust (eBay/FB Marketplace layer);
+dark = on-chain live spectacle (Arena/Studio layer). The light->dark transition
+when a negotiation opens is intentional storytelling: "you just went on-chain".
+- Marketplace pages (browse agents, listings, offer entry): LIGHT default, dark toggle
+- Arena / live negotiation / verdict / reveal: DARK always (projector + drama)
+- Studio (studio.aivylabs.xyz): DARK always (builder canvas, n8n territory)
+- Mini App: follows Telegram themeParams (`data-theme` on <html>, @twa-dev/sdk
+  WebApp.colorScheme + themeChanged event); negotiation view inside stays dark
+- Light accent darkened (#00A857) for AA contrast; role semantics identical in both
