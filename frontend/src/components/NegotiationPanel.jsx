@@ -27,6 +27,8 @@ export default function NegotiationPanel({
   const [sending, setSending] = useState(false);
   const [pending, setPending] = useState(null); // optimistic offer bubble
   const [error, setError] = useState(null);
+  const [soundBlocked, setSoundBlocked] = useState(false);
+  const playedRef = useRef(new Set());
   const chatRef = useRef(null);
 
   const n = negotiation;
@@ -49,6 +51,20 @@ export default function NegotiationPanel({
   useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages.length, evaluating]);
+
+  // Speak the verdict: play the agent's ElevenLabs audio when it arrives.
+  useEffect(() => {
+    const v = n?.verdict;
+    if (!v?.audio || playedRef.current.has(v.sequence)) return;
+    playedRef.current.add(v.sequence);
+    new Audio(`/${v.audio}`).play().catch(() => setSoundBlocked(true));
+  }, [n?.verdict]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function enableSound() {
+    setSoundBlocked(false);
+    const v = n?.verdict;
+    if (v?.audio) new Audio(`/${v.audio}`).play().catch(() => {});
+  }
 
   // Clear the optimistic bubble once the real offer lands from the chain.
   useEffect(() => {
@@ -202,14 +218,21 @@ export default function NegotiationPanel({
               ? `${t('verdictCounter')}: ${verdict.counterPrice} HBAR`
               : t('verdictReject')}
           </div>
-          <a
-            className="verdict-tx"
-            href={`https://hashscan.io/testnet/topic/0.0.9217269`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {t('viewOnHashscan')}
-          </a>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <a
+              className="verdict-tx"
+              href={`https://hashscan.io/testnet/topic/0.0.9217269`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t('viewOnHashscan')}
+            </a>
+            {(soundBlocked || verdict.audio) && (
+              <button className="verdict-tx" style={{ cursor: 'pointer', background: 'transparent' }} onClick={enableSound}>
+                🔊
+              </button>
+            )}
+          </div>
         </div>
       )}
 
