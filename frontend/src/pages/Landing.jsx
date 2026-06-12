@@ -32,7 +32,7 @@ export default function Landing() {
       <div className="nav">
         <a className="logo" href="/"><div className="logo-dot" />kickoff<span>.bot</span></a>
         <div className="nav-right">
-          <Link className="btn-ghost" to="/arena">{t('arena')}</Link>
+          <a className="btn-ghost" href="https://arena.kickoff.bot" target="_blank" rel="noreferrer">{t('arena')}</a>
           <Link className="btn-ghost" to="/studio">{t('studio')}</Link>
           <button className="btn-ghost" onClick={toggleLang}>{i18n.language === 'es' ? 'EN' : 'ES'}</button>
           <Link className="btn-primary" to="/offer">{t('liveDemo')}</Link>
@@ -52,7 +52,7 @@ export default function Landing() {
           <p className="hero-sub">{t('heroSub')}</p>
           <div className="hero-actions">
             <Link className="btn-lg" to="/offer">{t('makeOffer')} ⚡</Link>
-            <Link className="btn-lg-ghost" to="/arena">{t('arena')} →</Link>
+            <a className="btn-lg-ghost" href="https://arena.kickoff.bot" target="_blank" rel="noreferrer">{t('arena')} →</a>
             <a className="btn-lg-ghost" href="https://t.me/cryptokickoffbot" target="_blank" rel="noreferrer">
               {t('openMiniApp')} ✈️
             </a>
