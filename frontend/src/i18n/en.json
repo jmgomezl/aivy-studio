@@ -46,6 +46,63 @@
   "activate": "Activate",
   "activeFlow": "Flow active — listening to Hedera",
   "comingSoon": "Coming soon",
+  "myWorkflows": "My workflows",
+  "noWorkflows": "No saved workflows yet",
+  "nodePalette": "Node palette",
+  "newWorkflow": "New workflow",
+  "save": "Save",
+  "exportJson": "Export JSON",
+  "workflowName": "Workflow name",
+  "untitledWorkflow": "Untitled workflow",
+  "deleteWorkflow": "Delete workflow",
+  "nodesLabel": "nodes",
+  "edgesLabel": "edges",
+  "inspector": "Inspector",
+  "title": "Title",
+  "subtitle": "Subtitle",
+  "detail": "Detail",
+  "palette": {
+    "agent": {
+      "title": "Agent",
+      "sub": "LLM agent",
+      "detail": "prompt + tools + memory"
+    },
+    "hcs10": {
+      "title": "HCS-10 Channel",
+      "sub": "Hedera Consensus topic",
+      "detail": "message bus + audit trail"
+    },
+    "escrow": {
+      "title": "HTS Escrow",
+      "sub": "Hedera Token Service",
+      "detail": "lock · release · refund"
+    },
+    "contract": {
+      "title": "Smart Contract",
+      "sub": "on-chain logic",
+      "detail": "rules + settlement state"
+    },
+    "approval": {
+      "title": "Approval Gate",
+      "sub": "hardware-wallet threshold gate",
+      "detail": "human signature required"
+    },
+    "voice": {
+      "title": "Voice Output",
+      "sub": "speech synthesis",
+      "detail": "spoken result + notification"
+    },
+    "human": {
+      "title": "Human Input",
+      "sub": "manual decision",
+      "detail": "price + argument + override"
+    },
+    "scheduled": {
+      "title": "Scheduled Tx",
+      "sub": "deferred execution",
+      "detail": "queue transaction for approval"
+    }
+  },
   "howItWorks": "How it works",
   "connectWallet": "Connect Wallet",
   "marketplace": "Marketplace",

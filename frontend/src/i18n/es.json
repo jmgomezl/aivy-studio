@@ -46,6 +46,63 @@
   "activate": "Activar",
   "activeFlow": "Flujo activo — escuchando Hedera",
   "comingSoon": "Próximamente",
+  "myWorkflows": "Mis workflows",
+  "noWorkflows": "Aún no hay workflows guardados",
+  "nodePalette": "Paleta de nodos",
+  "newWorkflow": "Nuevo workflow",
+  "save": "Guardar",
+  "exportJson": "Exportar JSON",
+  "workflowName": "Nombre del workflow",
+  "untitledWorkflow": "Workflow sin título",
+  "deleteWorkflow": "Eliminar workflow",
+  "nodesLabel": "nodos",
+  "edgesLabel": "conexiones",
+  "inspector": "Inspector",
+  "title": "Título",
+  "subtitle": "Subtítulo",
+  "detail": "Detalle",
+  "palette": {
+    "agent": {
+      "title": "Agente",
+      "sub": "Agente LLM",
+      "detail": "prompt + herramientas + memoria"
+    },
+    "hcs10": {
+      "title": "Canal HCS-10",
+      "sub": "Topic de Hedera Consensus",
+      "detail": "bus de mensajes + auditoría"
+    },
+    "escrow": {
+      "title": "Escrow HTS",
+      "sub": "Hedera Token Service",
+      "detail": "bloquear · liberar · reembolsar"
+    },
+    "contract": {
+      "title": "Smart Contract",
+      "sub": "lógica on-chain",
+      "detail": "reglas + estado de liquidación"
+    },
+    "approval": {
+      "title": "Gate de aprobación",
+      "sub": "umbral con hardware wallet",
+      "detail": "firma humana requerida"
+    },
+    "voice": {
+      "title": "Salida de voz",
+      "sub": "síntesis de voz",
+      "detail": "resultado hablado + notificación"
+    },
+    "human": {
+      "title": "Entrada humana",
+      "sub": "decisión manual",
+      "detail": "precio + argumento + override"
+    },
+    "scheduled": {
+      "title": "Tx programada",
+      "sub": "ejecución diferida",
+      "detail": "poner transacción en cola"
+    }
+  },
   "howItWorks": "Cómo funciona",
   "connectWallet": "Conectar wallet",
   "marketplace": "Marketplace",
