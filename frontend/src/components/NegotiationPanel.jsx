@@ -21,10 +21,12 @@ export default function NegotiationPanel({
   buyerLabel,
   compact = false,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [price, setPrice] = useState('');
   const [argument, setArgument] = useState('');
   const [sending, setSending] = useState(false);
+  const [pending, setPending] = useState(null); // optimistic offer bubble
+  const [error, setError] = useState(null);
   const chatRef = useRef(null);
 
   const n = negotiation;
@@ -48,14 +50,36 @@ export default function NegotiationPanel({
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages.length, evaluating]);
 
+  // Clear the optimistic bubble once the real offer lands from the chain.
+  useEffect(() => {
+    if (pending && n?.offers?.some((o) => o.price === pending.price && o.argument === pending.argument)) {
+      setPending(null);
+    }
+  }, [n?.offers?.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function submit() {
     const p = parseFloat(price);
-    if (!p || p < 1 || argument.trim().length < 5 || sending) return;
+    if (sending) return;
+    if (!p || p < 1) {
+      setError(i18n.language === 'es' ? 'Pon un precio en HBAR (mín. 1)' : 'Enter a price in HBAR (min 1)');
+      return;
+    }
+    if (argument.trim().length < 5) {
+      setError(i18n.language === 'es' ? 'Cuéntale al agente por qué lo mereces' : 'Tell the agent why you deserve it');
+      return;
+    }
+    setError(null);
     setSending(true);
+    const offer = { price: p, argument: argument.trim() };
+    setPending(offer); // instant feedback — bubble appears immediately
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('medium');
     try {
-      await onSubmitOffer(p, argument.trim());
+      await onSubmitOffer(p, offer.argument);
       setPrice('');
       setArgument('');
+    } catch (err) {
+      setPending(null);
+      setError(i18n.language === 'es' ? 'No se pudo enviar — reintenta' : 'Could not send — try again');
     } finally {
       setSending(false);
     }
@@ -139,6 +163,19 @@ export default function NegotiationPanel({
             </div>
           );
         })}
+        {pending && (
+          <div className="cmsg right human-msg">
+            <div className="cmsg-av human">YOU</div>
+            <div className="cmsg-body">
+              <div className="cmsg-bubble" style={{ opacity: 0.7 }}>
+                {pending.price} HBAR — “{pending.argument}”
+              </div>
+              <div className="cmsg-meta">
+                ⏳ {i18n.language === 'es' ? 'registrando en Hedera…' : 'recording on Hedera…'}
+              </div>
+            </div>
+          </div>
+        )}
         {evaluating && (
           <div className="typing-row">
             <div className="cmsg-av seller">CA</div>
@@ -203,6 +240,7 @@ export default function NegotiationPanel({
             <div className="amt-wrap">
               <input
                 type="number"
+                inputMode="decimal"
                 min="1"
                 step="1"
                 placeholder="10"
@@ -226,9 +264,16 @@ export default function NegotiationPanel({
             />
           </div>
           <div className="input-footer">
-            <div className="input-hint">{t('offerHint')}</div>
-            <button className="submit-btn" disabled={sending || evaluating} onClick={submit}>
-              {t('send')}
+            <div className="input-hint" style={error ? { color: 'var(--red)' } : undefined}>
+              {error ?? (pending ? '⏳ HCS-10…' : t('offerHint'))}
+            </div>
+            <button
+              className="submit-btn"
+              style={{ touchAction: 'manipulation', minHeight: 40, minWidth: 110 }}
+              disabled={sending || evaluating || !!pending}
+              onClick={submit}
+            >
+              {sending || pending ? '⏳…' : t('send')}
             </button>
           </div>
         </div>
