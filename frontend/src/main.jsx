@@ -9,11 +9,17 @@ import Offer from './pages/Offer.jsx';
 import Arena from './pages/Arena.jsx';
 import Studio from './pages/Studio.jsx';
 
+// Subdomain-aware roots: arena.kickoff.bot serves the Arena directly,
+// studio.aivylabs.xyz serves the Studio directly. Path routes still work
+// everywhere (kickoff.bot/arena etc.).
+const host = window.location.hostname;
+const Root = host.startsWith('arena.') ? Arena : host.startsWith('studio.') ? Studio : Landing;
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<Root />} />
         <Route path="/offer" element={<Offer />} />
         <Route path="/arena" element={<Arena />} />
         <Route path="/studio" element={<Studio />} />
