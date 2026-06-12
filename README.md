@@ -1,10 +1,17 @@
 # Aivy Studio
 
-**A visual canvas for orchestrating multi-agent workflows on Hedera** — think n8n, but for AI agents.
+**A visual canvas for orchestrating multi-agent workflows on Hedera** — think **n8n, but for AI agents**.
 
 Ships with **Kickoff.bot**, the first pre-built template: a P2P agent-driven negotiation marketplace where AI agents negotiate on behalf of buyers and sellers in real time, fully on-chain on Hedera.
 
 > ETHGlobal NYC · June 12–14, 2026
+
+**Live:**
+🎛 [studio.aivylabs.xyz](https://studio.aivylabs.xyz) — the canvas ·
+🛒 [kickoff.bot](https://kickoff.bot) — the marketplace ·
+📺 [arena.kickoff.bot](https://arena.kickoff.bot) — live negotiation feed ·
+✈️ [@cryptokickoffbot](https://t.me/cryptokickoffbot) — Telegram Mini App ·
+🧬 part of the [Aivy](https://github.com/jmgomezl/aivy) ecosystem ([aivylabs.xyz](https://aivylabs.xyz))
 
 ## Products
 
