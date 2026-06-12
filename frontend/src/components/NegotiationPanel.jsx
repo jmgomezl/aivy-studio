@@ -1,0 +1,238 @@
+// The live negotiation surface — shared by the Mini App (Offer page) and Arena.
+// Everything rendered here comes from real backend events (HCS-10 via WS).
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+
+const SELLER = { av: 'seller', label: 'CA' };
+
+function meterColor(p) {
+  return p > 65 ? 'var(--accent)' : p > 35 ? 'var(--yellow)' : 'var(--red)';
+}
+
+function time(ts) {
+  const d = ts ? new Date(Number(String(ts).split('.')[0]) * 1000) : new Date();
+  return d.toTimeString().slice(0, 8);
+}
+
+export default function NegotiationPanel({
+  negotiation,
+  onSubmitOffer,
+  inputEnabled = true,
+  buyerLabel,
+  compact = false,
+}) {
+  const { t } = useTranslation();
+  const [price, setPrice] = useState('');
+  const [argument, setArgument] = useState('');
+  const [sending, setSending] = useState(false);
+  const chatRef = useRef(null);
+
+  const n = negotiation;
+  const prob = n?.sellProbability;
+  const verdict = n?.verdict;
+  const evaluating = n?.status === 'evaluating' && !verdict;
+  const lastOffer = n?.offers?.[n.offers.length - 1];
+
+  // Interleave offers + reasoning + verdict into a chat timeline by sequence.
+  const messages = useMemo(() => {
+    if (!n) return [];
+    const all = [
+      ...n.offers.map((o) => ({ ...o, kind: 'offer' })),
+      ...n.reasoning.map((r) => ({ ...r, kind: 'reasoning' })),
+      ...(n.verdict ? [{ ...n.verdict, kind: 'verdict' }] : []),
+    ];
+    return all.sort((a, b) => a.sequence - b.sequence);
+  }, [n]);
+
+  useEffect(() => {
+    chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' });
+  }, [messages.length, evaluating]);
+
+  async function submit() {
+    const p = parseFloat(price);
+    if (!p || p < 1 || argument.trim().length < 5 || sending) return;
+    setSending(true);
+    try {
+      await onSubmitOffer(p, argument.trim());
+      setPrice('');
+      setArgument('');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="neg-panel">
+      <div className="neg-item-header">
+        <div className="neg-eyebrow">{t('liveNegotiation')}</div>
+        <div className="neg-item-row">
+          <div className="neg-emoji">☕</div>
+          <div>
+            <div className="neg-item-name">{t('coffeeName')}</div>
+            <div className="neg-item-sub">Kickoff Seller Agent · 0.0.9217340 · Hedera</div>
+          </div>
+          <div className="neg-price-area">
+            <div className="neg-price-val" style={{ color: prob != null ? meterColor(prob) : 'var(--yellow)' }}>
+              {lastOffer ? `${lastOffer.price} HBAR` : '—'}
+            </div>
+            <div className="neg-price-sub">{t('currentOffer')}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="meter-bar">
+        <div className="meter-top">
+          <div className="meter-label">{t('sellProbability')}</div>
+          <div className="meter-pct" style={{ color: prob != null ? meterColor(prob) : 'var(--muted)' }}>
+            {evaluating ? t('evaluating') : prob != null ? `${prob}%` : t('waiting')}
+          </div>
+        </div>
+        <div className="meter-track">
+          <div
+            className="meter-fill"
+            style={{ width: `${prob ?? 0}%`, background: prob != null ? meterColor(prob) : 'var(--muted)' }}
+          />
+        </div>
+        <div className="meter-hints">
+          <span>{t('wontSell')}</span>
+          <span>{t('willSell')}</span>
+        </div>
+      </div>
+
+      <div className="chat-area" ref={chatRef}>
+        {messages.map((m, i) => {
+          if (m.kind === 'offer')
+            return (
+              <div className="cmsg right human-msg" key={i}>
+                <div className="cmsg-av human">YOU</div>
+                <div className="cmsg-body">
+                  <div className="cmsg-bubble">
+                    {m.price} HBAR — “{m.argument}”
+                  </div>
+                  <div className="cmsg-meta">
+                    {buyerLabel ?? t('judge')} · {time(m.consensusAt)} · seq {m.sequence}
+                  </div>
+                </div>
+              </div>
+            );
+          if (m.kind === 'reasoning')
+            return (
+              <div className="cmsg left" key={i}>
+                <div className="cmsg-av system">⬡</div>
+                <div className="cmsg-body" style={{ maxWidth: '100%' }}>
+                  <div className="system-bubble">{m.reasoning}</div>
+                  <div className="cmsg-meta">
+                    HCS-10 · seq {m.sequence} · p={m.sellProbability}%
+                  </div>
+                </div>
+              </div>
+            );
+          return (
+            <div className="cmsg left" key={i}>
+              <div className="cmsg-av seller">CA</div>
+              <div className="cmsg-body">
+                <div className="cmsg-bubble">{m.spokenVerdict}</div>
+                <div className="cmsg-meta">
+                  {t('sellerAgent')} · {time(m.consensusAt)} · seq {m.sequence}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {evaluating && (
+          <div className="typing-row">
+            <div className="cmsg-av seller">CA</div>
+            <div className="t-dots"><div className="t-dot" /><div className="t-dot" /><div className="t-dot" /></div>
+            <div className="t-label">Kickoff Seller Agent…</div>
+          </div>
+        )}
+      </div>
+
+      {verdict && (
+        <div className="verdict">
+          <div className="verdict-icon">
+            {verdict.decision === 'accept' ? '☕' : verdict.decision === 'counter' ? '🔁' : '🚫'}
+          </div>
+          <div
+            className="verdict-title"
+            style={{ color: verdict.decision === 'accept' ? 'var(--accent)' : verdict.decision === 'counter' ? 'var(--yellow)' : 'var(--red)' }}
+          >
+            {verdict.decision === 'accept'
+              ? `${t('verdictAccept')} — ${lastOffer?.price} HBAR`
+              : verdict.decision === 'counter'
+              ? `${t('verdictCounter')}: ${verdict.counterPrice} HBAR`
+              : t('verdictReject')}
+          </div>
+          <a
+            className="verdict-tx"
+            href={`https://hashscan.io/testnet/topic/0.0.9217269`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t('viewOnHashscan')}
+          </a>
+        </div>
+      )}
+
+      {n?.reveal && (
+        <div className="reveal-sec">
+          <div className="reveal-hdr">{t('minRevealed')}</div>
+          <div className="reveal-grid">
+            <div className="reveal-item">
+              <div className="reveal-val" style={{ color: 'var(--muted)' }}>{n.reveal.minPrice} HBAR</div>
+              <div className="reveal-lbl">{t('minPrice')}</div>
+            </div>
+            <div className="reveal-item">
+              <div className="reveal-val" style={{ color: 'var(--accent)' }}>{n.reveal.acceptedPrice} HBAR</div>
+              <div className="reveal-lbl">{t('offerAccepted')}</div>
+            </div>
+            <div className="reveal-item">
+              <div className={`reveal-val ${n.reveal.acceptedPrice - n.reveal.minPrice >= 0 ? 'spread-pos' : 'spread-neg'}`}>
+                {n.reveal.acceptedPrice - n.reveal.minPrice >= 0 ? '+' : ''}
+                {n.reveal.acceptedPrice - n.reveal.minPrice} HBAR
+              </div>
+              <div className="reveal-lbl">{t('spread')}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {inputEnabled && !verdict && (
+        <div className="offer-input">
+          <div className="input-row">
+            <div className="amt-wrap">
+              <input
+                type="number"
+                min="1"
+                step="1"
+                placeholder="10"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
+              <span>HBAR</span>
+            </div>
+            <textarea
+              className="arg-input"
+              rows={compact ? 2 : 1}
+              placeholder={t('offerPlaceholder')}
+              value={argument}
+              onChange={(e) => setArgument(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  submit();
+                }
+              }}
+            />
+          </div>
+          <div className="input-footer">
+            <div className="input-hint">{t('offerHint')}</div>
+            <button className="submit-btn" disabled={sending || evaluating} onClick={submit}>
+              {t('send')}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

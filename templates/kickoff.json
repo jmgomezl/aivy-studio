@@ -1,0 +1,36 @@
+{
+  "id": "kickoff",
+  "name": "Kickoff — P2P Agent Negotiation",
+  "description": "Full agent-vs-human negotiation marketplace: seller agent with on-chain committed minimum, HCS-10 messaging, HTS escrow, Ledger approval gate, ElevenLabs voice.",
+  "version": "1.0.0",
+  "network": "hedera-testnet",
+  "nodes": [
+    { "id": "buyer", "type": "kickoffNode", "position": { "x": 40, "y": 40 },
+      "data": { "icon": "👤", "color": "#4488FF", "title": "Buyer / Judge", "sub": "Telegram Mini App · web", "detail": "price + argument", "kind": "input" } },
+    { "id": "buyer-agent", "type": "kickoffNode", "position": { "x": 40, "y": 200 },
+      "data": { "icon": "🤖", "color": "#A78BFA", "title": "Buyer Agent", "sub": "autonomous · strategies", "detail": "aggressive · charming · analytical · emotional", "kind": "agent" } },
+    { "id": "hcs10", "type": "kickoffNode", "position": { "x": 320, "y": 120 },
+      "data": { "icon": "⬡", "color": "#00FF87", "title": "HCS-10 Channel", "sub": "topic 0.0.9217269", "detail": "every message on-chain · tamper-proof audit trail", "kind": "transport" } },
+    { "id": "seller-agent", "type": "kickoffNode", "position": { "x": 600, "y": 40 },
+      "data": { "icon": "☕", "color": "#00FF87", "title": "Seller Agent", "sub": "0.0.9217340 · GPT-4o", "detail": "economic guardrail + emotional criteria", "kind": "agent" } },
+    { "id": "commitment", "type": "kickoffNode", "position": { "x": 600, "y": 210 },
+      "data": { "icon": "🔒", "color": "#FFB800", "title": "Commitment Contract", "sub": "0xFf3787…8192", "detail": "keccak256(minPrice, salt) + collateral · reveal", "kind": "contract" } },
+    { "id": "escrow", "type": "kickoffNode", "position": { "x": 880, "y": 40 },
+      "data": { "icon": "💰", "color": "#FFB800", "title": "HTS Escrow", "sub": "native HBAR", "detail": "lock on offer · release on deal · refund on reject", "kind": "settlement" } },
+    { "id": "ledger", "type": "kickoffNode", "position": { "x": 880, "y": 210 },
+      "data": { "icon": "🔐", "color": "#FF4444", "title": "Ledger Gate", "sub": "vault 0.0.9217553", "detail": "≤50 HBAR autonomous · above → scheduled tx awaits hardware signature", "kind": "policy" } },
+    { "id": "voice", "type": "kickoffNode", "position": { "x": 1160, "y": 120 },
+      "data": { "icon": "🗣️", "color": "#00C8FF", "title": "ElevenLabs Voice", "sub": "eleven_multilingual_v2", "detail": "spoken verdict before settlement", "kind": "output" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "buyer", "target": "hcs10", "label": "offer" },
+    { "id": "e2", "source": "buyer-agent", "target": "hcs10", "label": "auto-offer" },
+    { "id": "e3", "source": "hcs10", "target": "seller-agent", "label": "mirror node" },
+    { "id": "e4", "source": "seller-agent", "target": "hcs10", "label": "reasoning + verdict" },
+    { "id": "e5", "source": "seller-agent", "target": "commitment", "label": "min check" },
+    { "id": "e6", "source": "seller-agent", "target": "escrow", "label": "accept" },
+    { "id": "e7", "source": "escrow", "target": "ledger", "label": "> threshold" },
+    { "id": "e8", "source": "seller-agent", "target": "voice", "label": "verdict text" },
+    { "id": "e9", "source": "commitment", "target": "hcs10", "label": "reveal" }
+  ]
+}
