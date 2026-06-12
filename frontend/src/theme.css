@@ -21,6 +21,26 @@
   --sans:    'Space Grotesk', sans-serif;
 }
 
+/* Light theme — Mini App only, applied when Telegram reports a light theme
+   (document.documentElement.dataset.theme = 'light'). kickoff.bot and Studio
+   stay dark always: the terminal-noir identity and projector legibility depend
+   on it. Accent colors are darkened for contrast on light surfaces. */
+[data-theme='light'] {
+  --bg:      #F4F4F8;
+  --surface: #FFFFFF;
+  --card:    #FFFFFF;
+  --border:  #E2E2EC;
+  --accent:  #00A857; /* darkened for AA contrast on white */
+  --purple:  #6D28D9;
+  --purple-light: #7C3AED;
+  --red:     #D92D2D;
+  --yellow:  #B07900;
+  --blue:    #2563EB;
+  --cyan:    #0E7490;
+  --text:    #14141E;
+  --muted:   #6E6E84;
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   background: var(--bg);

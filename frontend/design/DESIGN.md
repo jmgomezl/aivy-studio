@@ -29,3 +29,9 @@ Fonts: Space Grotesk (sans/UI), Space Mono (mono/data, hashes, prices, labels)
 - Spanish default, EN toggle (i18next)
 - Mini App index.html served with Cache-Control: no-store (Telegram webview caches hard)
 - Real data replaces the simulated feed: WebSocket events from backend (mirror-node sourced)
+
+## Theming
+- kickoff.bot + Studio: DARK ONLY (identity + projector legibility)
+- Mini App: follows Telegram themeParams — `data-theme="light"` on <html> swaps tokens
+  (via @twa-dev/sdk: WebApp.colorScheme, listen to themeChanged event)
+- Light accent is darkened (#00A857) for contrast on white; role semantics unchanged
