@@ -1,0 +1,172 @@
+{
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "seller",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "CollateralForfeited",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "seller",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "hash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "collateral",
+          "type": "uint256"
+        }
+      ],
+      "name": "Committed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "seller",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "minPrice",
+          "type": "uint256"
+        }
+      ],
+      "name": "Revealed",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "hash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "commit",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "commitments",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "hash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "collateral",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint64",
+          "name": "committedAt",
+          "type": "uint64"
+        },
+        {
+          "internalType": "bool",
+          "name": "revealed",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "minPrice",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "seller",
+          "type": "address"
+        }
+      ],
+      "name": "getCommitment",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "hash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "collateral",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "revealed",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "minPrice",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "minPrice",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "salt",
+          "type": "bytes32"
+        }
+      ],
+      "name": "reveal",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x6080604052348015600e575f5ffd5b506105c18061001c5f395ff3fe60806040526004361061003e575f3560e01c80634036778f14610042578063e8fcf72314610063578063f14fcbc8146100f6578063fa1026dd14610109575b5f5ffd5b34801561004d575f5ffd5b5061006161005c366004610527565b610183565b005b34801561006e575f5ffd5b506100ba61007d366004610547565b5f6020819052908152604090208054600182015460028301546003909301549192909167ffffffffffffffff821691600160401b900460ff169085565b60408051958652602086019490945267ffffffffffffffff909216928401929092529015156060830152608082015260a0015b60405180910390f35b610061610104366004610574565b61036e565b348015610114575f5ffd5b5061015d610123366004610547565b6001600160a01b03165f90815260208190526040902080546001820154600283015460039093015491939092600160401b900460ff169190565b6040805194855260208501939093529015159183019190915260608201526080016100ed565b335f9081526020819052604090208054158015906101ad57506002810154600160401b900460ff16155b6101f25760405162461bcd60e51b81526020600482015260116024820152701b9bdd1a1a5b99c81d1bc81c995d99585b607a1b60448201526064015b60405180910390fd5b80546040805160208101869052908101849052606001604051602081830303815290604052805190602001201461026b5760405162461bcd60e51b815260206004820181905260248201527f72657665616c20646f6573206e6f74206d6174636820636f6d6d69746d656e7460448201526064016101e9565b60028101805468ff00000000000000001916600160401b179055600381018390556001810180545f90915560405133907f36cb84e26ec058ba1aadcd698199fa19568d3c52427b175bd593b94ce83f67c0906102ca9087815260200190565b60405180910390a26040515f90339083908381818185875af1925050503d805f8114610311576040519150601f19603f3d011682016040523d82523d5f602084013e610316565b606091505b50509050806103675760405162461bcd60e51b815260206004820152601860248201527f636f6c6c61746572616c2072657475726e206661696c6564000000000000000060448201526064016101e9565b5050505050565b806103a85760405162461bcd60e51b815260206004820152600a6024820152690cadae0e8f240d0c2e6d60b31b60448201526064016101e9565b5f34116103ed5760405162461bcd60e51b815260206004820152601360248201527218dbdb1b185d195c985b081c995c5d5a5c9959606a1b60448201526064016101e9565b335f9081526020819052604090208054158061041457506002810154600160401b900460ff165b6104605760405162461bcd60e51b815260206004820152601860248201527f61637469766520636f6d6d69746d656e7420657869737473000000000000000060448201526064016101e9565b6040805160a08101825283815234602080830182815267ffffffffffffffff4281168587019081525f60608701818152608088018281523380845296839052918990209751885593516001880155905160028701805494511515600160401b0268ffffffffffffffffff19909516919093161792909217905551600390930192909255915190917f550e735193e8f8bf0398f14bcadbbbf0329d5401f6786981e63f5b010662b00e9161051b91868252602082015260400190565b60405180910390a25050565b5f5f60408385031215610538575f5ffd5b50508035926020909101359150565b5f60208284031215610557575f5ffd5b81356001600160a01b038116811461056d575f5ffd5b9392505050565b5f60208284031215610584575f5ffd5b503591905056fea264697066735822122010c3068ba170e6c501e92cd04ab5a123fed21ae0aae3d1a3fb07efdf74a6725364736f6c63430008230033"
+}
