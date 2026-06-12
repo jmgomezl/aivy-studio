@@ -12,7 +12,9 @@
     "@hashgraphonline/standards-sdk": "^0.1.184",
     "dotenv": "^17.4.2",
     "ethers": "^6.16.0",
-    "hedera-agent-kit": "^3.8.2"
+    "express": "^5.2.1",
+    "hedera-agent-kit": "^3.8.2",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "solc": "^0.8.35"

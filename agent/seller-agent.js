@@ -61,6 +61,17 @@ export async function handleOffer(offer) {
 
 async function loop() {
   console.log(`[agent] seller agent ${process.env.SELLER_AGENT_ACCOUNT_ID} watching topic ${TOPIC}`);
+  // Start from the tip — never replay historical negotiations after a restart.
+  try {
+    const res = await fetch(
+      `${process.env.MIRROR_NODE_URL || 'https://testnet.mirrornode.hedera.com'}/api/v1/topics/${TOPIC}/messages?order=desc&limit=1`
+    );
+    const data = await res.json();
+    lastSeq = data.messages?.[0]?.sequence_number ?? 0;
+    console.log(`[agent] starting after sequence ${lastSeq}`);
+  } catch (err) {
+    console.warn('[agent] could not fetch topic tip, starting from 0:', err.message);
+  }
   while (running) {
     try {
       const messages = await fetchTopicMessages(TOPIC, lastSeq);
