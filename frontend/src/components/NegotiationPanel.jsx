@@ -243,7 +243,7 @@ export default function NegotiationPanel({
                 inputMode="decimal"
                 min="1"
                 step="1"
-                placeholder="10"
+                placeholder="···"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
               />
