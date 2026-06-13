@@ -119,10 +119,13 @@ app.get('/api/negotiations/:id', (req, res) => {
 // Judge/buyer submits an offer: published straight to the HCS-10 topic.
 app.post('/api/offer', async (req, res) => {
   try {
-    const { negotiationId, price, argument, buyer } = req.body || {};
+    const { negotiationId, price, argument, buyer, authToken } = req.body || {};
     if (!negotiationId || !Number(price) || !argument?.trim()) {
       return res.status(400).json({ error: 'negotiationId, price and argument are required' });
     }
+    // A verified Telegram session attributes the offer to that identity (can't be forged).
+    const session = authToken ? verifySession(authToken) : null;
+    const offerBuyer = session ? `tg:${session.username || session.telegramId}` : buyer || 'anonymous';
     const tx = await new TopicMessageSubmitTransaction()
       .setTopicId(TOPIC)
       .setMessage(
@@ -131,7 +134,7 @@ app.post('/api/offer', async (req, res) => {
           op: 'message',
           type: 'offer',
           negotiationId,
-          buyer: buyer || 'anonymous',
+          buyer: offerBuyer,
           price: Number(price),
           argument: argument.trim().slice(0, 1000),
         })

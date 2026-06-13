@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useNegotiationFeed } from '../lib/useNegotiation.js';
 import NegotiationPanel from '../components/NegotiationPanel.jsx';
 import WorldGate from '../components/WorldGate.jsx';
+import TelegramLogin from '../components/TelegramLogin.jsx';
 import { toggleLang } from '../i18n';
 
 const STRATEGIES = ['aggressive', 'charming', 'analytical', 'emotional'];
@@ -24,6 +25,7 @@ export default function Offer() {
   const [humanVerified, setHumanVerified] = useState(false);
   const [worldEnabled, setWorldEnabled] = useState(false);
   const [activeItem, setActiveItem] = useState(null);
+  const [tgAuth, setTgAuth] = useState(null);
 
   useEffect(() => {
     fetch('/api/world/config').then((r) => r.json()).then((c) => setWorldEnabled(!!c.enabled)).catch(() => {});
@@ -131,8 +133,14 @@ export default function Offer() {
         item={activeItem}
         buyerLabel={buyer}
         inputEnabled={mode === 'human' && (!worldEnabled || humanVerified)}
-        onSubmitOffer={(price, argument) => submitOffer({ negotiationId, price, argument, buyer })}
+        onSubmitOffer={(price, argument) => submitOffer({ negotiationId, price, argument, buyer, authToken: tgAuth?.token })}
       />
+
+      {mode === 'human' && (
+        <div style={{ padding: '10px 14px 0' }}>
+          <TelegramLogin role="buyer" es={i18n.language === 'es'} onChange={setTgAuth} />
+        </div>
+      )}
 
       {mode === 'human' && worldEnabled && !humanVerified && !n?.verdict && (
         <WorldGate scope={negotiationId} onVerified={() => setHumanVerified(true)} />

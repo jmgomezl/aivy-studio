@@ -3,17 +3,10 @@
 // description, and sets a SECRET reserve price that gets committed on-chain
 // (keccak256(reserve, salt)). The reserve drives the negotiation and the
 // dramatic reveal — nobody, not even the buyer's agent, sees it until the deal.
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toggleLang } from '../i18n';
-
-function readTgAuth() {
-  try {
-    return JSON.parse(localStorage.getItem('kickoff-tg-auth') || 'null');
-  } catch {
-    return null;
-  }
-}
+import TelegramLogin from '../components/TelegramLogin.jsx';
 
 export default function Sell() {
   const { t, i18n } = useTranslation();
@@ -29,60 +22,7 @@ export default function Sell() {
   const es = i18n.language === 'es';
   const tg = window.Telegram?.WebApp;
   const inTelegram = !!tg?.initDataUnsafe?.user;
-  const [tgAuth, setTgAuth] = useState(readTgAuth);
-  const [tgConfig, setTgConfig] = useState(null);
-  const widgetRef = useRef(null);
-
-  useEffect(() => {
-    fetch('/api/auth/config').then((r) => r.json()).then(setTgConfig).catch(() => {});
-  }, []);
-
-  // Inject the Telegram Login Widget on web (not inside the Mini App, where the
-  // identity is already known). On success the backend verifies the HMAC, mints
-  // the seller's managed wallet, and returns a signed session.
-  useEffect(() => {
-    if (inTelegram || tgAuth || !tgConfig?.enabled || !widgetRef.current) return;
-    window.onKickoffTelegramAuth = async (user) => {
-      try {
-        const res = await fetch('/api/auth/telegram', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(user),
-        });
-        const data = await res.json();
-        if (data.ok) {
-          const auth = { token: data.token, profile: data.profile };
-          setTgAuth(auth);
-          localStorage.setItem('kickoff-tg-auth', JSON.stringify(auth));
-        }
-      } catch {
-        /* ignore */
-      }
-    };
-    const container = widgetRef.current;
-    container.innerHTML = '';
-    const s = document.createElement('script');
-    s.src = 'https://telegram.org/js/telegram-widget.js?22';
-    s.async = true;
-    s.setAttribute('data-telegram-login', tgConfig.botUsername);
-    s.setAttribute('data-size', 'medium');
-    s.setAttribute('data-userpic', 'false');
-    s.setAttribute('data-onauth', 'onKickoffTelegramAuth(user)');
-    s.setAttribute('data-request-access', 'write');
-    container.appendChild(s);
-    return () => {
-      try {
-        delete window.onKickoffTelegramAuth;
-      } catch {
-        /* ignore */
-      }
-    };
-  }, [inTelegram, tgAuth, tgConfig]);
-
-  function signOut() {
-    setTgAuth(null);
-    localStorage.removeItem('kickoff-tg-auth');
-  }
+  const [tgAuth, setTgAuth] = useState(null);
 
   // Resize/compress the photo client-side so the upload stays small (phone
   // camera shots are several MB; the body limit and bandwidth don't like that).
@@ -200,42 +140,7 @@ export default function Sell() {
       <div style={{ padding: '14px 16px' }}>
         <div className="neg-eyebrow" style={{ marginBottom: 12 }}>{es ? 'Vender un producto' : 'Sell a product'}</div>
 
-        {/* Seller identity (web only — the Mini App already knows who you are) */}
-        {!inTelegram && (
-          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', marginBottom: 12 }}>
-            {tgAuth ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {tgAuth.profile?.photoUrl
-                  ? <img src={tgAuth.profile.photoUrl} alt="" style={{ width: 30, height: 30, borderRadius: '50%' }} />
-                  : <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(0,255,135,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</div>}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
-                    {es ? 'Listando como' : 'Listing as'} @{tgAuth.profile?.username || tgAuth.profile?.telegramId}
-                  </div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 8.5, color: 'var(--muted)' }}>
-                    {es ? 'identidad Telegram · billetera' : 'Telegram identity · wallet'} {(tgAuth.profile?.walletEvm || '').slice(0, 10)}…
-                  </div>
-                </div>
-                <button className="btn-ghost" style={{ padding: '3px 9px', fontSize: 10 }} onClick={signOut}>
-                  {es ? 'Salir' : 'Sign out'}
-                </button>
-              </div>
-            ) : tgConfig?.enabled ? (
-              <div>
-                <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 8, lineHeight: 1.5 }}>
-                  {es
-                    ? 'Inicia sesión con Telegram para vincular tus listados a tu identidad (opcional).'
-                    : 'Sign in with Telegram to tie your listings to your identity (optional).'}
-                </div>
-                <div ref={widgetRef} />
-              </div>
-            ) : (
-              <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                {es ? 'Listando como vendedor anónimo.' : 'Listing as an anonymous seller.'}
-              </div>
-            )}
-          </div>
-        )}
+        <TelegramLogin role="seller" es={es} onChange={setTgAuth} />
 
         {/* photo */}
         <label style={{ display: 'block', marginBottom: 12, cursor: 'pointer' }}>

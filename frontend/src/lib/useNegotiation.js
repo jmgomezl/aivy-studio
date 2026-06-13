@@ -75,11 +75,11 @@ export function useNegotiationFeed() {
     };
   }, []);
 
-  const submitOffer = useCallback(async ({ negotiationId, price, argument, buyer }) => {
+  const submitOffer = useCallback(async ({ negotiationId, price, argument, buyer, authToken }) => {
     const res = await fetch('/api/offer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ negotiationId, price, argument, buyer }),
+      body: JSON.stringify({ negotiationId, price, argument, buyer, authToken }),
     });
     if (!res.ok) throw new Error('offer failed');
     return res.json();
