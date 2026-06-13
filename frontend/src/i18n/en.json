@@ -101,6 +101,11 @@
       "title": "Scheduled Tx",
       "sub": "deferred execution",
       "detail": "queue transaction for approval"
+    },
+    "uniswap": {
+      "title": "Uniswap Swap",
+      "sub": "EVM liquidity",
+      "detail": "accept any token · cross-asset swap"
     }
   },
   "howItWorks": "How it works",

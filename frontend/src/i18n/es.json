@@ -101,6 +101,11 @@
       "title": "Tx programada",
       "sub": "ejecución diferida",
       "detail": "poner transacción en cola"
+    },
+    "uniswap": {
+      "title": "Uniswap Swap",
+      "sub": "liquidez EVM",
+      "detail": "acepta cualquier token · swap cross-asset"
     }
   },
   "howItWorks": "Cómo funciona",

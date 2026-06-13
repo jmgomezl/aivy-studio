@@ -1,0 +1,19 @@
+{
+  "name": "hak-uniswap-plugin",
+  "version": "0.1.0",
+  "description": "The first Uniswap plugin for the Hedera Agent Kit — let a Hedera agent swap tokens through Uniswap permissionless liquidity on EVM chains. Cross-asset settlement, treasury rebalancing, optionally Ledger-gated.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": { ".": "./src/index.js" },
+  "keywords": ["hedera", "hedera-agent-kit", "hak-plugin", "uniswap", "defi", "ai-agent", "swap"],
+  "peerDependencies": {
+    "hedera-agent-kit": ">=3.0.0",
+    "zod": "^3.0.0"
+  },
+  "dependencies": {
+    "ethers": "^6.0.0"
+  },
+  "license": "MIT",
+  "author": "jmgomezl",
+  "repository": "https://github.com/jmgomezl/aivy-studio"
+}

@@ -90,6 +90,7 @@ export default function Studio() {
       { kind: 'voice', icon: '🗣️', color: '#00C8FF', title: t('palette.voice.title'), sub: t('palette.voice.sub'), detail: t('palette.voice.detail') },
       { kind: 'human', icon: '👤', color: '#4488FF', title: t('palette.human.title'), sub: t('palette.human.sub'), detail: t('palette.human.detail') },
       { kind: 'scheduled', icon: '⏱', color: '#7C3AED', title: t('palette.scheduled.title'), sub: t('palette.scheduled.sub'), detail: t('palette.scheduled.detail') },
+      { kind: 'uniswap', icon: '🦄', color: '#FF007A', title: t('palette.uniswap.title'), sub: t('palette.uniswap.sub'), detail: t('palette.uniswap.detail') },
     ],
     [t]
   );
