@@ -15,6 +15,7 @@ import {
 import { fetchTopicMessages } from '../agent/hedera.js';
 import { deployBuyerAgent, getSession } from './buyer-agent.js';
 import { createListing, getPublicListings, getActiveListing } from './listings.js';
+import { verifyProof, claimOffer, worldIdEnabled, worldConfig } from './worldid.js';
 
 const PORT = Number(process.env.PORT || 8787);
 const TOPIC = process.env.HCS10_NEGOTIATION_TOPIC;
@@ -151,6 +152,27 @@ app.post('/api/deploy-buyer', (req, res) => {
 
 app.get('/api/buyer-session/:id', (req, res) => {
   res.json(getSession(req.params.id) ?? { status: 'none' });
+});
+
+// ── World ID (proof-of-human) ──
+app.get('/api/world/config', (_, res) =>
+  res.json({ enabled: worldIdEnabled, appId: worldConfig.appId ?? null, action: worldConfig.action })
+);
+
+// Verified humans for this session: nullifier -> true (gates human offers).
+const verifiedHumans = new Set();
+
+app.post('/api/world/verify', async (req, res) => {
+  const { proof, scope } = req.body || {};
+  if (!proof) return res.status(400).json({ error: 'proof required' });
+  const result = await verifyProof(proof);
+  if (!result.ok) return res.status(400).json({ ok: false, detail: result.detail });
+  // Enforce one offer per human per listing/negotiation scope.
+  if (scope && !claimOffer(result.nullifier, scope)) {
+    return res.status(409).json({ ok: false, detail: 'this human already offered on this item' });
+  }
+  verifiedHumans.add(result.nullifier);
+  res.json({ ok: true, nullifier: result.nullifier });
 });
 
 // ── Seller listings ──

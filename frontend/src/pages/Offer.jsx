@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNegotiationFeed } from '../lib/useNegotiation.js';
 import NegotiationPanel from '../components/NegotiationPanel.jsx';
+import WorldGate from '../components/WorldGate.jsx';
 import { toggleLang } from '../i18n';
 
 const BUDGETS = [10, 15, 20, 30, 50];
@@ -21,6 +22,12 @@ export default function Offer() {
   const [budgetIdx, setBudgetIdx] = useState(2);
   const [strategy, setStrategy] = useState('charming');
   const [agentStatus, setAgentStatus] = useState(null);
+  const [humanVerified, setHumanVerified] = useState(false);
+  const [worldEnabled, setWorldEnabled] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/world/config').then((r) => r.json()).then((c) => setWorldEnabled(!!c.enabled)).catch(() => {});
+  }, []);
 
   const tg = window.Telegram?.WebApp;
   const buyer = useMemo(() => {
@@ -107,9 +114,13 @@ export default function Offer() {
         negotiation={n}
         compact
         buyerLabel={buyer}
-        inputEnabled={mode === 'human'}
+        inputEnabled={mode === 'human' && (!worldEnabled || humanVerified)}
         onSubmitOffer={(price, argument) => submitOffer({ negotiationId, price, argument, buyer })}
       />
+
+      {mode === 'human' && worldEnabled && !humanVerified && !n?.verdict && (
+        <WorldGate scope={negotiationId} onVerified={() => setHumanVerified(true)} />
+      )}
 
       {mode === 'agent' && !n?.verdict && (
         <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border)' }}>
