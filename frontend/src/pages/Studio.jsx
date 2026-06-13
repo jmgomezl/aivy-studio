@@ -477,6 +477,7 @@ export default function Studio() {
   const [saveNotice, setSaveNotice] = useState(false);
   const [draftNotice, setDraftNotice] = useState(false);
   const [importError, setImportError] = useState('');
+  const [publishState, setPublishState] = useState('idle'); // idle | publishing | done | error
   const onConnect = useCallback(
     (connection) => {
       if (connection.source === connection.target) {
@@ -934,6 +935,31 @@ export default function Studio() {
     URL.revokeObjectURL(link.href);
   }
 
+  async function publishWorkflow() {
+    setPublishState('publishing');
+    try {
+      const payload = {
+        id: currentWorkflowId && currentWorkflowId !== 'kickoff' ? currentWorkflowId : undefined,
+        name: workflowName.trim() || t('untitledWorkflow'),
+        version: '1.0.0',
+        network: 'hedera-testnet',
+        nodes: cleanNodes(nodes),
+        edges: cleanEdges(edges),
+      };
+      const res = await fetch('/api/workflows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('publish failed');
+      setPublishState('done');
+      window.setTimeout(() => setPublishState('idle'), 2200);
+    } catch {
+      setPublishState('error');
+      window.setTimeout(() => setPublishState('idle'), 2600);
+    }
+  }
+
   async function importJson(event) {
     const [file] = event.target.files || [];
     event.target.value = '';
@@ -1219,6 +1245,19 @@ export default function Studio() {
               </button>
             </div>
             <input ref={importInputRef} className="workflow-file-input" type="file" accept="application/json,.json" onChange={importJson} />
+            <button
+              className={`btn-ghost export-btn publish-btn ${publishState}`}
+              onClick={publishWorkflow}
+              disabled={publishState === 'publishing'}
+            >
+              {publishState === 'publishing'
+                ? t('publishing')
+                : publishState === 'done'
+                  ? t('publishedToServer')
+                  : publishState === 'error'
+                    ? t('publishError')
+                    : t('publishWorkflow')}
+            </button>
             {importError && <div className="import-error">{importError}</div>}
           </div>
           <div className="sidebar-title studio-section-title">{t('nodePalette')}</div>

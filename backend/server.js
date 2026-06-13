@@ -16,6 +16,8 @@ import { fetchTopicMessages } from '../agent/hedera.js';
 import { deployBuyerAgent, getSession } from './buyer-agent.js';
 import { createListing, getPublicListings, getActiveListing, markSold } from './listings.js';
 import { rpSignature, verifyProof, worldIdEnabled, worldConfig } from './worldid.js';
+import { validateWorkflow, WorkflowValidationError } from './workflow-schema.js';
+import { saveWorkflow, getWorkflow, listWorkflows } from './workflows.js';
 
 const PORT = Number(process.env.PORT || 8787);
 const TOPIC = process.env.HCS10_NEGOTIATION_TOPIC;
@@ -193,6 +195,33 @@ app.post('/api/listings', async (req, res) => {
   } catch (err) {
     console.error('[api/listings]', err.message);
     res.status(400).json({ error: err.message });
+  }
+});
+
+// ── Studio workflows (Phase 1: validated ingestion + read-back, no execution) ──
+// Custom Studio graphs are published here. This path is fully isolated from the
+// live Kickoff flow — it never touches the topic poller, /api/offer, or the
+// seller agent. Storing a workflow does NOT run it.
+app.get('/api/workflows', (_, res) => res.json({ workflows: listWorkflows() }));
+
+app.get('/api/workflows/:id', (req, res) => {
+  const workflow = getWorkflow(req.params.id);
+  if (!workflow) return res.status(404).json({ error: 'unknown workflow' });
+  res.json({ workflow });
+});
+
+app.post('/api/workflows', (req, res) => {
+  try {
+    const canonical = validateWorkflow(req.body, { fallbackName: 'Untitled workflow' });
+    const requestedId = typeof req.body?.id === 'string' ? req.body.id : undefined;
+    const saved = saveWorkflow(canonical, { id: requestedId });
+    res.json({ ok: true, workflow: saved });
+  } catch (err) {
+    if (err instanceof WorkflowValidationError) {
+      return res.status(400).json({ error: err.message, code: err.code });
+    }
+    console.error('[api/workflows]', err.message);
+    res.status(500).json({ error: 'failed to store workflow' });
   }
 });
 
