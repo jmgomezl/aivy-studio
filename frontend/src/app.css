@@ -108,14 +108,21 @@
 .reset-btn:hover { border-color:var(--accent); color:var(--accent); }
 
 /* ── activity feed (arena) ── */
-.act-item { display:flex; align-items:flex-start; gap:8px; padding:8px 10px; background:var(--card); border:1px solid var(--border); border-radius:7px; animation:slideIn .25s ease; flex-shrink:0; }
+.act-item { display:flex; align-items:flex-start; gap:9px; padding:9px 12px; background:var(--card); border:1px solid var(--border); border-left:3px solid var(--border); border-radius:7px; animation:slideIn .25s ease; flex-shrink:0; }
+.act-item.r-offer { border-left-color:var(--blue); }
+.act-item.r-reasoning { border-left-color:var(--purple-light); }
+.act-item.r-accept { border-left-color:var(--accent); }
+.act-item.r-counter { border-left-color:var(--yellow); }
+.act-item.r-reject { border-left-color:var(--red); }
+.act-item.r-status { border-left-color:var(--border); opacity:.72; }
+.arena-feed > .act-item:first-child { box-shadow:0 0 0 1px color-mix(in srgb, var(--accent) 32%, transparent); }
 .act-av { width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:9px; font-weight:700; flex-shrink:0; }
 .act-content { flex:1; min-width:0; }
-.act-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:2px; }
-.act-agent { font-size:11px; font-weight:600; }
-.act-time { font-family:var(--mono); font-size:9px; color:var(--muted); }
-.act-msg { font-size:11px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.act-badge { font-family:var(--mono); font-size:9px; font-weight:700; padding:2px 5px; border-radius:3px; flex-shrink:0; }
+.act-top { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:3px; }
+.act-agent { font-size:12px; font-weight:600; }
+.act-time { font-family:var(--mono); font-size:9.5px; color:var(--muted); flex-shrink:0; }
+.act-msg { font-size:12.5px; line-height:1.45; color:#cfd0de; white-space:normal; word-break:break-word; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.act-badge { font-family:var(--mono); font-size:9.5px; font-weight:700; padding:3px 6px; border-radius:3px; flex-shrink:0; }
 .b-deal { background:rgba(0,255,135,.12); color:var(--accent); }
 .b-reject { background:rgba(255,68,68,.12); color:var(--red); }
 .b-offer { background:rgba(255,184,0,.12); color:var(--yellow); }
@@ -127,7 +134,7 @@
 @media (max-width: 1000px) { .arena-body { grid-template-columns:1fr; } }
 .arena-left { border-right:1px solid var(--border); display:flex; flex-direction:column; min-height:0; }
 .arena-left-header { padding:10px 16px; border-bottom:1px solid var(--border); font-family:var(--mono); font-size:10px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; display:flex; justify-content:space-between; }
-.arena-feed { flex:1; overflow-y:auto; padding:10px 14px; display:flex; flex-direction:column-reverse; gap:5px; scrollbar-width:none; }
+.arena-feed { flex:1; overflow-y:auto; padding:10px 14px; display:flex; flex-direction:column; gap:7px; scrollbar-width:none; }
 .arena-right { display:flex; flex-direction:column; min-height:0; }
 .arena .neg-panel { border:none; border-radius:0; flex:1; }
 
