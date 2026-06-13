@@ -3,3 +3,8 @@ node_modules/
 *.local
 dist/
 .DS_Store
+
+# runtime data
+data/
+uploads/
+audio/

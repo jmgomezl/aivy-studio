@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toggleLang } from '../i18n';
+import Marketplace from '../components/Marketplace.jsx';
 
 export default function Landing() {
   const { t, i18n } = useTranslation();
@@ -82,6 +83,8 @@ export default function Landing() {
           </div>
         </div>
       </div>
+
+      <Marketplace />
 
       <footer style={{ borderTop: '1px solid var(--border)', padding: '24px', display: 'flex', justifyContent: 'space-between', maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--muted)' }}>

@@ -16,6 +16,8 @@ const SETTLE_CAP_HBAR = Number(process.env.DEMO_SETTLE_HBAR || 1);
 const TOPIC = process.env.HCS10_NEGOTIATION_TOPIC;
 const POLL_MS = Number(process.env.AGENT_POLL_MS || 2500);
 
+import { existsSync, readFileSync } from 'node:fs';
+
 const ctx = {
   productName: process.env.PRODUCT_NAME || 'Specialty Coffee — Single Origin',
   currency: 'HBAR',
@@ -23,12 +25,28 @@ const ctx = {
   history: [],
 };
 
+// If a seller created a listing, defend THAT reserve (written server-side by
+// the listings module). Falls back to the env default.
+function refreshActiveListing() {
+  try {
+    if (existsSync('data/active-listing.json')) {
+      const a = JSON.parse(readFileSync('data/active-listing.json', 'utf8'));
+      if (a?.minPriceHbar) {
+        ctx.minPrice = Number(a.minPriceHbar);
+        ctx.productName = a.name || ctx.productName;
+        ctx.activeListingId = a.id;
+      }
+    }
+  } catch {}
+}
+
 const client = agentClient();
 let lastSeq = 0;
 let running = true;
 
 export async function handleOffer(offer) {
-  console.log(`[agent] offer #${offer.negotiationId} — ${offer.price} HBAR — "${offer.argument?.slice(0, 80)}"`);
+  refreshActiveListing(); // defend the current listing's reserve
+  console.log(`[agent] offer #${offer.negotiationId} — ${offer.price} HBAR — "${offer.argument?.slice(0, 80)}" (reserve ${ctx.minPrice})`);
 
   await publishMessage(client, TOPIC, {
     type: 'agent_status',

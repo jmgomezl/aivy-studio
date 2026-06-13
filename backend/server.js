@@ -14,6 +14,7 @@ import {
 } from '@hashgraph/sdk';
 import { fetchTopicMessages } from '../agent/hedera.js';
 import { deployBuyerAgent, getSession } from './buyer-agent.js';
+import { createListing, getPublicListings, getActiveListing } from './listings.js';
 
 const PORT = Number(process.env.PORT || 8787);
 const TOPIC = process.env.HCS10_NEGOTIATION_TOPIC;
@@ -26,8 +27,9 @@ operator.setOperator(
 );
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '8mb' })); // generous for listing photos (base64)
 app.use('/audio', express.static('audio')); // agent-generated verdict mp3s
+app.use('/uploads', express.static('uploads')); // listing photos
 app.use((_, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -149,6 +151,20 @@ app.post('/api/deploy-buyer', (req, res) => {
 
 app.get('/api/buyer-session/:id', (req, res) => {
   res.json(getSession(req.params.id) ?? { status: 'none' });
+});
+
+// ── Seller listings ──
+app.get('/api/listings', (_, res) => res.json({ listings: getPublicListings(), active: getActiveListing() }));
+
+app.post('/api/listings', async (req, res) => {
+  try {
+    const { name, description, minPriceHbar, photoDataUrl, seller } = req.body || {};
+    const listing = await createListing({ name, description, minPriceHbar, photoDataUrl, seller });
+    res.json({ ok: true, listing });
+  } catch (err) {
+    console.error('[api/listings]', err.message);
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // ── WebSocket ──

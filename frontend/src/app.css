@@ -182,3 +182,22 @@
 .kn-sub { font-family:var(--mono); font-size:9px; color:var(--muted); }
 .kn-badge { margin-left:auto; width:7px; height:7px; border-radius:50%; }
 .kn-detail { font-family:var(--mono); font-size:9px; color:var(--muted); line-height:1.6; }
+
+/* ── living marketplace grid (landing) ── */
+.mkt-card { position:relative; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px; transition:border-color .2s, transform .2s; }
+.mkt-card:hover { border-color:var(--accent); transform:translateY(-2px); }
+.mkt-new { position:absolute; top:8px; left:8px; background:var(--accent); color:#000; font-family:var(--mono); font-size:9px; font-weight:700; padding:2px 7px; border-radius:4px; letter-spacing:.06em; animation:mktBlink 1s ease infinite; }
+[data-theme='light'] .mkt-new { color:#fff; }
+@keyframes mktBlink { 0%,100%{opacity:1} 50%{opacity:.55} }
+@keyframes mktPop { from{opacity:0; transform:scale(.94)} to{opacity:1; transform:scale(1)} }
+.mkt-onchain { position:absolute; top:8px; right:8px; background:rgba(0,255,135,.12); color:var(--accent); font-family:var(--mono); font-size:9px; font-weight:700; padding:2px 6px; border-radius:4px; }
+.mkt-thumb { height:96px; border-radius:8px; background:var(--surface); display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:10px; }
+.mkt-thumb img { width:100%; height:100%; object-fit:cover; }
+.mkt-name { font-size:13px; font-weight:600; margin-bottom:5px; line-height:1.3; }
+.mkt-meta { display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10px; color:var(--muted); margin-bottom:10px; }
+.mkt-dot { width:6px; height:6px; border-radius:50%; }
+.mkt-foot { display:flex; align-items:center; justify-content:space-between; }
+.mkt-price { font-family:var(--mono); font-size:12px; font-weight:700; color:var(--accent); }
+[data-theme='light'] .mkt-price { color:var(--accent); }
+.mkt-bid { font-family:var(--sans); font-size:11px; font-weight:600; color:var(--text); text-decoration:none; border:1px solid var(--border); border-radius:6px; padding:4px 12px; }
+.mkt-bid:hover { border-color:var(--accent); color:var(--accent); }
