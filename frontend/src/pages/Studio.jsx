@@ -103,6 +103,10 @@ function defaultEdgeLabel(sourceNode, targetNode) {
   const sourceKind = sourceNode?.data?.kind;
   const targetKind = targetNode?.data?.kind;
 
+  if (sourceKind === 'human' && targetKind === 'openclaw') return 'task';
+  if (sourceKind === 'agent' && targetKind === 'openclaw') return 'delegate';
+  if (sourceKind === 'openclaw' && targetKind === 'hcs10') return 'agent output';
+  if (sourceKind === 'openclaw' && targetKind === 'agent') return 'result';
   if (sourceKind === 'agent' && targetKind === 'hcs10') return 'message';
   if (sourceKind === 'hcs10' && targetKind === 'agent') return 'event';
   if (sourceKind === 'agent' && targetKind === 'escrow') return 'settle';
@@ -169,6 +173,14 @@ const nodeConfigFields = {
     { key: 'tokenOut', placeholder: 'HBAR' },
     { key: 'slippage', placeholder: '0.5%' },
     { key: 'router', placeholder: '0x...' },
+  ],
+  openclaw: [
+    { key: 'endpoint', placeholder: 'https://openclaw.example.com/api/tasks' },
+    { key: 'agentId', placeholder: 'researcher-agent' },
+    { key: 'auth', type: 'select', options: ['none', 'api-key', 'bearer-token'] },
+    { key: 'inputMapping', type: 'textarea' },
+    { key: 'outputMapping', type: 'textarea' },
+    { key: 'timeout', placeholder: '60s' },
   ],
   custom: [
     { key: 'apiName', placeholder: 'external service' },
@@ -316,6 +328,45 @@ const studioTemplateDefinitions = [
       { id: 'release-edge-human-contract', source: 'release-human', target: 'release-contract', label: 'confirm' },
       { id: 'release-edge-contract-escrow', source: 'release-contract', target: 'release-escrow', label: 'release' },
       { id: 'release-edge-escrow-voice', source: 'release-escrow', target: 'release-voice', label: 'notify' },
+    ],
+  },
+  {
+    id: 'openclaw-kickoff',
+    emoji: '🧩',
+    titleKey: 'studioTemplates.openclaw.title',
+    descKey: 'studioTemplates.openclaw.desc',
+    nodes: [
+      studioNode('openclaw-request', 'human', '👤', '#4488FF', 'Kickoff Request', 'buyer or seller input', 'captures the deal context for an external agent', 70, 120, {
+        channel: 'web',
+        requiredInput: 'item + offer + constraints',
+      }),
+      studioNode('openclaw-agent', 'openclaw', 'OC', '#F97316', 'OpenClaw Agent', 'external agent connector', 'runs an OpenClaw task before the Kickoff flow continues', 330, 120, {
+        endpoint: 'https://openclaw.example.com/api/tasks',
+        agentId: 'kickoff-continuity-agent',
+        auth: 'api-key',
+        inputMapping: 'offer, listing, buyerProfile',
+        outputMapping: 'recommendation, confidence, constraints',
+        timeout: '60s',
+      }),
+      studioNode('openclaw-audit', 'hcs10', '⬡', '#00FF87', 'Kickoff Audit Topic', 'HCS-10 bridge', 'records OpenClaw output and Kickoff handoff events', 610, 120, {
+        network: 'hedera-testnet',
+        memo: 'openclaw-kickoff-handoff',
+      }),
+      studioNode('openclaw-seller', 'agent', '🤖', '#A78BFA', 'Kickoff Seller Agent', 'negotiation policy', 'uses OpenClaw context to evaluate the offer', 880, 120, {
+        model: 'gpt-4o',
+        tools: 'hcs10, escrow, voice',
+      }),
+      studioNode('openclaw-gate', 'approval', '🔐', '#FF4444', 'Trust Gate', 'World / Ledger guard', 'requires human trust proof or hardware approval for risky output', 880, 300, {
+        wallet: 'Ledger',
+        threshold: 'high-risk decision',
+        timeout: '2h',
+      }),
+    ],
+    edges: [
+      { id: 'openclaw-edge-request-agent', source: 'openclaw-request', target: 'openclaw-agent', label: 'task' },
+      { id: 'openclaw-edge-agent-audit', source: 'openclaw-agent', target: 'openclaw-audit', label: 'agent output' },
+      { id: 'openclaw-edge-audit-seller', source: 'openclaw-audit', target: 'openclaw-seller', label: 'context' },
+      { id: 'openclaw-edge-seller-gate', source: 'openclaw-seller', target: 'openclaw-gate', label: 'risk check' },
     ],
   },
 ];
@@ -474,6 +525,14 @@ function liveEventLine(event, index) {
         id, icon: '🔒', tag: 'REVEAL', tone: 'green',
         text: `min ${event.minPrice} HBAR · accepted ${event.acceptedPrice} HBAR`, meta: tail,
       };
+    case 'swap_status':
+      return { id, icon: '🦄', tag: 'SWAP', tone: 'purple', text: `converting → ${event.tokenOut || 'token'} via Uniswap…`, meta: tail };
+    case 'swap':
+      return {
+        id, icon: '🦄', tag: 'UNISWAP', tone: event.status === 'failed' ? 'red' : 'purple',
+        text: event.status === 'failed' ? 'cross-asset swap failed' : `${event.tokenIn || 'ETH'} → ${event.tokenOut || 'token'} · ${event.txHash ? String(event.txHash).slice(0, 16) + '…' : 'executed'}`,
+        meta: tail,
+      };
     default:
       return { id, icon: '•', tag: String(event.type || 'event'), tone: 'muted', text: '', meta: tail };
   }
@@ -507,6 +566,7 @@ export default function Studio() {
       { kind: 'human', icon: '👤', color: '#4488FF', title: t('palette.human.title'), sub: t('palette.human.sub'), detail: t('palette.human.detail') },
       { kind: 'scheduled', icon: '⏱', color: '#7C3AED', title: t('palette.scheduled.title'), sub: t('palette.scheduled.sub'), detail: t('palette.scheduled.detail') },
       { kind: 'uniswap', icon: '🦄', color: '#FF007A', title: t('palette.uniswap.title'), sub: t('palette.uniswap.sub'), detail: t('palette.uniswap.detail') },
+      { kind: 'openclaw', icon: 'OC', color: '#F97316', title: t('palette.openclaw.title'), sub: t('palette.openclaw.sub'), detail: t('palette.openclaw.detail') },
     ],
     [t]
   );
@@ -644,7 +704,7 @@ export default function Studio() {
   // This is what makes "Activate" show actual outputs, not just node colors.
   const consoleLines = useMemo(() => {
     if (isKickoffWorkflow) {
-      const tracked = new Set(['offer', 'agent_status', 'agent_reasoning', 'agent_verdict', 'settlement', 'reveal']);
+      const tracked = new Set(['offer', 'agent_status', 'agent_reasoning', 'agent_verdict', 'settlement', 'reveal', 'swap', 'swap_status']);
       return feed.filter((e) => tracked.has(e.type)).map((e, i) => liveEventLine(e, i));
     }
     const toneByStatus = { done: 'green', current: 'yellow', queued: 'muted' };

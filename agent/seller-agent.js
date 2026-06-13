@@ -9,6 +9,7 @@ import { speakVerdict } from './voice.js';
 import { agentClient, fetchTopicMessages, publishMessage } from './hedera.js';
 import { escrowClient } from './escrow.js';
 import { settleDeal } from './delegation.js';
+import { crossAssetSettle, crossAssetSettleEnabled } from './uniswap-settle.js';
 
 // Testnet-budget guard: the on-chain settlement moves a symbolic amount no
 // matter what price was negotiated, so demos can't drain the faucet balance.
@@ -112,6 +113,13 @@ export async function handleOffer(offer) {
         acceptedPrice: offer.price,
       });
       console.log(`[agent] settled ${settleAmount} HBAR via scheduled tx (${res.mode}) — schedule ${res.scheduleId}`);
+
+      // Cross-asset leg: convert proceeds to the seller's preferred token via
+      // Uniswap (best-effort, async — the EVM swap takes ~20s and must not block
+      // the negotiation loop). Records the swap back on HCS-10.
+      if (crossAssetSettleEnabled()) {
+        void crossAssetSettle(client, TOPIC, { negotiationId: offer.negotiationId });
+      }
     } catch (err) {
       console.warn('[agent] settlement failed (verdict stands):', err.message);
     }

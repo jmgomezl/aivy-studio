@@ -12,6 +12,8 @@ function badge(ev) {
   if (ev.type === 'agent_reasoning') return [`p=${ev.sellProbability}%`, 'b-thinking'];
   if (ev.type === 'settlement') return ['SETTLED', 'b-deal'];
   if (ev.type === 'reveal') return ['REVEAL', 'b-deal'];
+  if (ev.type === 'swap') return ev.status === 'failed' ? ['🦄 SWAP ✕', 'b-reject'] : ['🦄 UNISWAP', 'b-deal'];
+  if (ev.type === 'swap_status') return ['🦄 …', 'b-thinking'];
   if (ev.type === 'agent_status') return ['···', 'b-thinking'];
   return ['HCS-10', 'b-thinking'];
 }
@@ -33,6 +35,11 @@ function lineFor(ev) {
         : ev.txId ? `Settled on-chain · tx ${String(ev.txId).slice(0, 18)}…` : 'Funds released on-chain';
     case 'reveal':
       return `Reserve revealed · min ${ev.minPrice} HBAR · accepted ${ev.acceptedPrice} HBAR`;
+    case 'swap_status':
+      return `Converting proceeds → ${ev.tokenOut || 'token'} via Uniswap…`;
+    case 'swap':
+      if (ev.status === 'failed') return 'Cross-asset swap failed (HBAR settlement stands)';
+      return `Cross-asset settle · ${ev.tokenIn || 'ETH'} → ${ev.tokenOut || 'token'} via Uniswap · ${ev.txHash ? String(ev.txHash).slice(0, 14) + '…' : 'executed'}`;
     default:
       return ev.status || '';
   }
@@ -45,6 +52,8 @@ function rowTone(ev) {
   if (ev.type === 'agent_verdict') return ev.decision === 'accept' ? 'r-accept' : ev.decision === 'counter' ? 'r-counter' : 'r-reject';
   if (ev.type === 'settlement') return 'r-accept';
   if (ev.type === 'reveal') return 'r-accept';
+  if (ev.type === 'swap') return ev.status === 'failed' ? 'r-reject' : 'r-reasoning';
+  if (ev.type === 'swap_status') return 'r-reasoning';
   return 'r-status';
 }
 
