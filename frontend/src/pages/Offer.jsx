@@ -75,9 +75,9 @@ export default function Offer() {
           <div className="logo-dot" />kickoff<span>.bot</span>
         </a>
         <div className="nav-right">
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: connected ? 'var(--accent)' : 'var(--red)' }}>
-            {connected ? '● HEDERA LIVE' : '○ OFFLINE'}
-          </span>
+          <a className="btn-ghost" href="/sell" style={{ padding: '4px 10px', fontSize: 11 }}>
+            🏷️ {i18n.language === 'es' ? 'Vender' : 'Sell'}
+          </a>
           <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11 }} onClick={toggleLang}>
             {i18n.language === 'es' ? 'EN' : 'ES'}
           </button>

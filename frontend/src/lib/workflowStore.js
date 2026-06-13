@@ -1,4 +1,6 @@
 const WORKFLOW_KEY = 'aivy-studio-workflows';
+const DRAFT_KEY = 'aivy-studio-draft';
+const LAST_OPENED_KEY = 'aivy-studio-last-opened';
 
 export function readWorkflows() {
   if (typeof window === 'undefined') return [];
@@ -35,5 +37,54 @@ export function saveWorkflow(workflow) {
 export function deleteWorkflow(id) {
   const workflows = readWorkflows().filter((workflow) => workflow.id !== id);
   writeWorkflows(workflows);
+  clearDraft(id);
+  if (readLastOpenedWorkflowId() === id) {
+    window.localStorage.removeItem(LAST_OPENED_KEY);
+  }
   return workflows;
+}
+
+export function readDraft() {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(DRAFT_KEY) || 'null');
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveDraft(workflow) {
+  if (typeof window === 'undefined') return null;
+  const saved = { ...workflow, id: workflow.id || 'draft', updatedAt: new Date().toISOString() };
+  window.localStorage.setItem(DRAFT_KEY, JSON.stringify(saved));
+  return saved;
+}
+
+export function clearDraft(sourceWorkflowId) {
+  if (typeof window === 'undefined') return;
+  if (!sourceWorkflowId) {
+    window.localStorage.removeItem(DRAFT_KEY);
+    return;
+  }
+
+  const draft = readDraft();
+  if (draft?.sourceWorkflowId === sourceWorkflowId || draft?.id === sourceWorkflowId) {
+    window.localStorage.removeItem(DRAFT_KEY);
+  }
+}
+
+export function readLastOpenedWorkflowId() {
+  if (typeof window === 'undefined') return '';
+  return window.localStorage.getItem(LAST_OPENED_KEY) || '';
+}
+
+export function writeLastOpenedWorkflowId(id) {
+  if (typeof window === 'undefined') return;
+  if (!id) {
+    window.localStorage.removeItem(LAST_OPENED_KEY);
+    return;
+  }
+  window.localStorage.setItem(LAST_OPENED_KEY, id);
 }

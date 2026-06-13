@@ -99,6 +99,9 @@ export default function Sell() {
       <div className="nav" style={{ height: 48 }}>
         <a className="logo" href="/" style={{ fontSize: 15 }}><div className="logo-dot" />kickoff<span>.bot</span></a>
         <div className="nav-right">
+          <a className="btn-ghost" href="/offer" style={{ padding: '4px 10px', fontSize: 11 }}>
+            🛒 {es ? 'Comprar' : 'Buy'}
+          </a>
           <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11 }} onClick={toggleLang}>
             {es ? 'EN' : 'ES'}
           </button>

@@ -19,7 +19,16 @@ import { useNegotiationFeed } from '../lib/useNegotiation.js';
 import KickoffNode from '../components/nodes/KickoffNode.jsx';
 import template from '../../../templates/kickoff.json';
 import { toggleLang } from '../i18n';
-import { deleteWorkflow, readWorkflows, saveWorkflow } from '../lib/workflowStore.js';
+import {
+  clearDraft,
+  deleteWorkflow,
+  readDraft,
+  readLastOpenedWorkflowId,
+  readWorkflows,
+  saveDraft,
+  saveWorkflow,
+  writeLastOpenedWorkflowId,
+} from '../lib/workflowStore.js';
 
 const nodeTypes = { kickoffNode: KickoffNode };
 
@@ -278,6 +287,7 @@ export default function Studio() {
   const { t, i18n } = useTranslation();
   const { feed, connected } = useNegotiationFeed();
   const importInputRef = useRef(null);
+  const restoreAttemptedRef = useRef(false);
   const [active, setActive] = useState(false);
   const [simulationStep, setSimulationStep] = useState(0);
   const [simulationAuto, setSimulationAuto] = useState(true);
@@ -313,6 +323,7 @@ export default function Studio() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [lastCleanSnapshot, setLastCleanSnapshot] = useState(initialSnapshot);
   const [saveNotice, setSaveNotice] = useState(false);
+  const [draftNotice, setDraftNotice] = useState(false);
   const [importError, setImportError] = useState('');
   const onConnect = useCallback(
     (connection) => {
@@ -378,6 +389,47 @@ export default function Studio() {
       edges: new Set(visibleSteps.map((step) => step.edgeId).filter(Boolean)),
     };
   }, [simulationStep, simulationSteps]);
+  const simulationTimeline = useMemo(() => {
+    const nodeById = new Map(nodes.map((node) => [node.id, node]));
+    const edgeById = new Map(edges.map((edge) => [edge.id, edge]));
+
+    return simulationSteps.map((step, index) => {
+      const stepNumber = index + 1;
+      const done = index < simulationStep;
+      const current = active && index === simulationStep && simulationStep < simulationSteps.length;
+      const status = done ? 'done' : current ? 'current' : 'queued';
+
+      if (step.edgeId) {
+        const edge = edgeById.get(step.edgeId);
+        const sourceNode = nodeById.get(edge?.source);
+        const targetNode = nodeById.get(edge?.target || step.nodeId);
+        return {
+          id: `timeline-${step.edgeId}-${index}`,
+          stepNumber,
+          status,
+          icon: '→',
+          title: t('timeline.edge', { label: edge?.label || t('timeline.message') }),
+          meta: t('timeline.edgeMeta', {
+            source: sourceNode?.data?.title || edge?.source || t('timeline.unknownNode'),
+            target: targetNode?.data?.title || edge?.target || t('timeline.unknownNode'),
+          }),
+        };
+      }
+
+      const node = nodeById.get(step.nodeId);
+      const title = node?.data?.title || t('timeline.unknownNode');
+      const kind = node?.data?.kind || 'custom';
+      return {
+        id: `timeline-${step.nodeId}-${index}`,
+        stepNumber,
+        status,
+        icon: node?.data?.icon || '•',
+        title: t(`timeline.kind.${kind}`, { node: title, defaultValue: t('timeline.kind.custom', { node: title }) }),
+        meta: node?.data?.detail || node?.data?.sub || t('timeline.noDetail'),
+      };
+    });
+  }, [active, edges, nodes, simulationStep, simulationSteps, t]);
+  const simulationProgress = `${Math.min(simulationStep, simulationSteps.length)}/${simulationSteps.length}`;
 
   useEffect(() => {
     if (selectedNodeId && !nodes.some((node) => node.id === selectedNodeId)) {
@@ -485,8 +537,91 @@ export default function Studio() {
 
   const activationLabel = active ? `■ ${t('stop')}` : `▶ ${isKickoffWorkflow ? t('listenLive') : t('simulate')}`;
   const activeStatus = isKickoffWorkflow ? t('activeLiveFlow') : t('activeSimulation');
-  const saveStateLabel = hasUnsavedChanges ? t('unsavedChanges') : saveNotice ? t('savedJustNow') : t('saved');
+  const saveStateLabel = isKickoffWorkflow
+    ? t('liveTemplateSafe')
+    : hasUnsavedChanges
+      ? draftNotice
+        ? t('draftSaved')
+        : t('savingDraft')
+      : saveNotice
+        ? t('savedJustNow')
+        : t('savedLocally');
+  const saveStateClass = isKickoffWorkflow ? 'live' : hasUnsavedChanges ? (draftNotice ? 'draft' : 'dirty') : 'clean';
   const modeLabel = isKickoffWorkflow ? t('kickoffLiveTemplate') : t('localWorkflow');
+
+  useEffect(() => {
+    if (restoreAttemptedRef.current) return;
+    restoreAttemptedRef.current = true;
+
+    const lastOpenedId = readLastOpenedWorkflowId();
+    if (!lastOpenedId || lastOpenedId === 'kickoff') return;
+
+    const draft = readDraft();
+    const matchingDraft =
+      draft && (lastOpenedId === 'draft' || draft.id === lastOpenedId || draft.sourceWorkflowId === lastOpenedId) ? draft : null;
+
+    if (matchingDraft) {
+      const draftNodes = cloneNodes(matchingDraft.nodes || []);
+      const draftEdges = styleEdges(matchingDraft.edges || []);
+      const name = matchingDraft.name || t('untitledWorkflow');
+      setActive(false);
+      setSelectedNodeId(null);
+      setSelectedEdgeId(null);
+      setNodeClipboard(null);
+      setCurrentWorkflowId(matchingDraft.sourceWorkflowId || null);
+      setWorkflowName(name);
+      setNodes(draftNodes);
+      setEdges(draftEdges);
+      setLastCleanSnapshot('');
+      setSaveNotice(false);
+      setDraftNotice(true);
+      setImportError('');
+      setConnectionNotice('');
+      return;
+    }
+
+    const workflow = readWorkflows().find((item) => item.id === lastOpenedId);
+    if (!workflow) return;
+
+    const workflowNodes = cloneNodes(workflow.nodes || []);
+    const workflowEdges = styleEdges(workflow.edges || []);
+    const name = workflow.name || t('untitledWorkflow');
+    setActive(false);
+    setSelectedNodeId(null);
+    setSelectedEdgeId(null);
+    setNodeClipboard(null);
+    setCurrentWorkflowId(workflow.id);
+    setWorkflowName(name);
+    setNodes(workflowNodes);
+    setEdges(workflowEdges);
+    setLastCleanSnapshot(workflowSnapshot(name, workflowNodes, workflowEdges));
+    setSaveNotice(false);
+    setDraftNotice(false);
+    setImportError('');
+    setConnectionNotice('');
+  }, [setEdges, setNodes, t]);
+
+  useEffect(() => {
+    if (!restoreAttemptedRef.current || isKickoffWorkflow) return undefined;
+    if (!hasUnsavedChanges && currentWorkflowId) return undefined;
+    if (!nodes.length && !edges.length && !workflowName.trim()) return undefined;
+
+    setDraftNotice(false);
+    const timer = window.setTimeout(() => {
+      const name = workflowName.trim() || t('untitledWorkflow');
+      const saved = saveDraft({
+        id: currentWorkflowId || 'draft',
+        sourceWorkflowId: currentWorkflowId || null,
+        name,
+        nodes: cleanNodes(nodes),
+        edges: cleanEdges(edges),
+      });
+      writeLastOpenedWorkflowId(currentWorkflowId || 'draft');
+      if (saved) setDraftNotice(true);
+    }, 650);
+
+    return () => window.clearTimeout(timer);
+  }, [currentWorkflowId, edges, hasUnsavedChanges, isKickoffWorkflow, nodes, t, workflowName]);
 
   function activate() {
     const nextActive = !active;
@@ -519,6 +654,7 @@ export default function Studio() {
     setActive(false);
     setSimulationStep(0);
     setCurrentWorkflowId((id) => (id === 'kickoff' ? null : id));
+    writeLastOpenedWorkflowId(currentWorkflowId === 'kickoff' ? 'draft' : currentWorkflowId || 'draft');
     setConnectionNotice('');
   }
 
@@ -530,11 +666,13 @@ export default function Studio() {
     setSelectedEdgeId(null);
     setNodeClipboard(null);
     setCurrentWorkflowId('kickoff');
+    writeLastOpenedWorkflowId('kickoff');
     setWorkflowName(template.name);
     setNodes(templateNodes);
     setEdges(templateEdges);
     setLastCleanSnapshot(workflowSnapshot(template.name, templateNodes, templateEdges));
     setSaveNotice(false);
+    setDraftNotice(false);
     setImportError('');
     setConnectionNotice('');
   }
@@ -548,11 +686,13 @@ export default function Studio() {
     setSelectedEdgeId(null);
     setNodeClipboard(null);
     setCurrentWorkflowId(workflow.id);
+    writeLastOpenedWorkflowId(workflow.id);
     setWorkflowName(name);
     setNodes(workflowNodes);
     setEdges(workflowEdges);
     setLastCleanSnapshot(workflowSnapshot(name, workflowNodes, workflowEdges));
     setSaveNotice(false);
+    setDraftNotice(false);
     setImportError('');
     setConnectionNotice('');
   }
@@ -564,11 +704,14 @@ export default function Studio() {
     setSelectedEdgeId(null);
     setNodeClipboard(null);
     setCurrentWorkflowId(null);
+    clearDraft();
+    writeLastOpenedWorkflowId('draft');
     setWorkflowName(name);
     setNodes([]);
     setEdges([]);
     setLastCleanSnapshot(workflowSnapshot(name, [], []));
     setSaveNotice(false);
+    setDraftNotice(false);
     setImportError('');
     setConnectionNotice('');
   }
@@ -583,11 +726,14 @@ export default function Studio() {
       nodes: savedNodes,
       edges: savedEdges,
     });
+    clearDraft(currentWorkflowId || undefined);
+    writeLastOpenedWorkflowId(saved.id);
     setCurrentWorkflowId(saved.id);
     setWorkflowName(saved.name);
     setSavedWorkflows(readWorkflows());
     setLastCleanSnapshot(workflowSnapshot(saved.name, saved.nodes, saved.edges));
     setSaveNotice(true);
+    setDraftNotice(false);
     setImportError('');
   }
 
@@ -632,11 +778,13 @@ export default function Studio() {
       setSelectedEdgeId(null);
       setNodeClipboard(null);
       setCurrentWorkflowId(null);
+      writeLastOpenedWorkflowId('draft');
       setWorkflowName(imported.name);
       setNodes(importedNodes);
       setEdges(importedEdges);
       setLastCleanSnapshot('');
       setSaveNotice(false);
+      setDraftNotice(false);
       setImportError('');
       setConnectionNotice('');
     } catch {
@@ -876,7 +1024,7 @@ export default function Studio() {
               onChange={(event) => setWorkflowName(event.target.value)}
               aria-label={t('workflowName')}
             />
-            <div className={`save-state ${hasUnsavedChanges ? 'dirty' : 'clean'}`}>
+            <div className={`save-state ${saveStateClass}`}>
               <span className="save-state-dot" /> {saveStateLabel}
             </div>
             <div className="studio-action-grid">
@@ -948,6 +1096,32 @@ export default function Studio() {
                   onChange={(event) => setSimulationDelay(1750 - Number(event.target.value))}
                 />
               </label>
+              <div className="simulation-timeline">
+                <div className="timeline-head">
+                  <span>{t('simulationTimeline')}</span>
+                  <strong>{simulationProgress}</strong>
+                </div>
+                {simulationTimeline.length === 0 ? (
+                  <div className="timeline-empty">{t('simulationTimelineEmpty')}</div>
+                ) : (
+                  <div className="timeline-list">
+                    {simulationTimeline.map((entry) => (
+                      <div className={`timeline-item ${entry.status}`} key={entry.id}>
+                        <div className="timeline-step">
+                          <span>{entry.stepNumber}</span>
+                        </div>
+                        <div className="timeline-copy">
+                          <div className="timeline-title">
+                            <span>{entry.icon}</span>
+                            {entry.title}
+                          </div>
+                          <div className="timeline-meta">{entry.meta}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -16,9 +16,14 @@ const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
 const OFFER_RE = /^(\d+(?:\.\d+)?)\s+(.{10,})$/s;
 
+const SELL_URL = (process.env.SELL_WEBAPP_URL || WEBAPP_URL.replace(/\/offer$/, '/sell'));
+
 function mainKeyboard() {
   const rows = [];
-  if (WEBAPP_URL) rows.push([Markup.button.webApp('☕ Make an offer', WEBAPP_URL)]);
+  if (WEBAPP_URL) {
+    rows.push([Markup.button.webApp('🛒 Make an offer', WEBAPP_URL)]);
+    if (SELL_URL && SELL_URL !== WEBAPP_URL) rows.push([Markup.button.webApp('🏷️ Sell a product', SELL_URL)]);
+  }
   return rows.length ? Markup.inlineKeyboard(rows) : undefined;
 }
 
@@ -29,8 +34,10 @@ bot.start((ctx) =>
       '',
       'A seller agent guards this specialty coffee\\. Its minimum price is committed on\\-chain — it literally cannot change it\\.',
       '',
-      'Make your offer: *price \\+ why you deserve it*\\.',
+      '🛒 *Buy:* make an offer — *price \\+ why you deserve it*\\.',
       'Example: `30 I fell in love with Huila coffee at a farm in Pitalito`',
+      '',
+      '🏷️ *Sell:* list your own product with a secret reserve committed on\\-chain — tap *Sell a product* below\\.',
       '',
       'The story can beat the money\\. _Tu agente negocia\\. Tú ganas\\._',
     ].join('\n'),

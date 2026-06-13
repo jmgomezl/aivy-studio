@@ -60,6 +60,10 @@
   "save": "Save",
   "saved": "Saved",
   "savedJustNow": "Saved just now",
+  "savedLocally": "Saved locally",
+  "savingDraft": "Saving draft",
+  "draftSaved": "Draft saved locally",
+  "liveTemplateSafe": "Live template unchanged",
   "unsavedChanges": "Unsaved changes",
   "exportJson": "Export JSON",
   "importJson": "Import JSON",
@@ -75,6 +79,8 @@
   "step": "Step",
   "autoRun": "Auto run",
   "speed": "Speed",
+  "simulationTimeline": "Timeline",
+  "simulationTimelineEmpty": "Add nodes to preview simulation steps",
   "inspector": "Inspector",
   "edgeInspector": "Edge inspector",
   "duplicate": "Duplicate",
@@ -131,6 +137,25 @@
     "apiName": "API name",
     "endpoint": "Endpoint",
     "auth": "Auth"
+  },
+  "timeline": {
+    "edge": "{{label}} sent",
+    "edgeMeta": "{{source}} → {{target}}",
+    "message": "message",
+    "unknownNode": "Unknown node",
+    "noDetail": "No node detail configured",
+    "kind": {
+      "agent": "{{node}} evaluated tools",
+      "hcs10": "{{node}} recorded event",
+      "escrow": "{{node}} locked value",
+      "contract": "{{node}} executed rule",
+      "approval": "{{node}} requested approval",
+      "voice": "{{node}} notified user",
+      "human": "{{node}} captured input",
+      "scheduled": "{{node}} queued transaction",
+      "uniswap": "{{node}} prepared swap",
+      "custom": "{{node}} completed step"
+    }
   },
   "palette": {
     "agent": {

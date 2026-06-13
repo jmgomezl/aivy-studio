@@ -60,6 +60,10 @@
   "save": "Guardar",
   "saved": "Guardado",
   "savedJustNow": "Guardado ahora",
+  "savedLocally": "Guardado local",
+  "savingDraft": "Guardando borrador",
+  "draftSaved": "Borrador guardado local",
+  "liveTemplateSafe": "Plantilla live sin cambios",
   "unsavedChanges": "Cambios sin guardar",
   "exportJson": "Exportar JSON",
   "importJson": "Importar JSON",
@@ -75,6 +79,8 @@
   "step": "Paso",
   "autoRun": "Auto run",
   "speed": "Velocidad",
+  "simulationTimeline": "Timeline",
+  "simulationTimelineEmpty": "Agrega nodos para previsualizar pasos",
   "inspector": "Inspector",
   "edgeInspector": "Inspector de conexión",
   "duplicate": "Duplicar",
@@ -131,6 +137,25 @@
     "apiName": "Nombre API",
     "endpoint": "Endpoint",
     "auth": "Auth"
+  },
+  "timeline": {
+    "edge": "{{label}} enviado",
+    "edgeMeta": "{{source}} → {{target}}",
+    "message": "mensaje",
+    "unknownNode": "Nodo desconocido",
+    "noDetail": "Sin detalle configurado",
+    "kind": {
+      "agent": "{{node}} evaluó herramientas",
+      "hcs10": "{{node}} registró evento",
+      "escrow": "{{node}} bloqueó valor",
+      "contract": "{{node}} ejecutó regla",
+      "approval": "{{node}} pidió aprobación",
+      "voice": "{{node}} notificó al usuario",
+      "human": "{{node}} capturó input",
+      "scheduled": "{{node}} puso transacción en cola",
+      "uniswap": "{{node}} preparó swap",
+      "custom": "{{node}} completó paso"
+    }
   },
   "palette": {
     "agent": {
