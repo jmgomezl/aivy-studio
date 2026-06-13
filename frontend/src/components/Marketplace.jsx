@@ -85,7 +85,9 @@ export default function Marketplace() {
             </div>
             <div className="mkt-foot">
               <span className="mkt-price">{it.price != null ? `${it.price} HBAR` : (es ? 'Reserva oculta' : 'Hidden reserve')}</span>
-              <a href={it.real ? '/offer' : '/offer'} className="mkt-bid">{es ? 'Ofertar' : 'Bid'}</a>
+              {it.real
+                ? <a href="/offer" className="mkt-bid">{es ? 'Ofertar' : 'Bid'}</a>
+                : <a href="/arena" className="mkt-bid">{es ? 'Ver' : 'Watch'}</a>}
             </div>
           </div>
         ))}
