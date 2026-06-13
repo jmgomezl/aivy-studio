@@ -1,6 +1,6 @@
 // Arena — projector view. Left: live HCS-10 event feed. Right: the most recent
 // negotiation, full drama (meter, reasoning, verdict, reveal). Dark always.
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNegotiationFeed } from '../lib/useNegotiation.js';
 import NegotiationPanel from '../components/NegotiationPanel.jsx';
@@ -50,6 +50,28 @@ export default function Arena() {
   const { t } = useTranslation();
   const { feed, negotiations, connected } = useNegotiationFeed();
   const feedRef = useRef(null);
+  const [activeItem, setActiveItem] = useState(null);
+
+  // Show the REAL active listing (name + photo) on the projector, not a hardcoded
+  // placeholder. Polled so a freshly created listing updates the Arena live.
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      fetch('/api/listings')
+        .then((r) => r.json())
+        .then((d) => {
+          if (!alive || !d.active) return;
+          const full = (d.listings || []).find((l) => l.id === d.active.id);
+          setActiveItem({ name: d.active.name, photoUrl: full?.photoUrl });
+        })
+        .catch(() => {});
+    load();
+    const timer = window.setInterval(load, 20000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   // Newest-first: pin the feed to the top whenever a new event lands.
   useEffect(() => {
@@ -148,7 +170,7 @@ export default function Arena() {
           </div>
         </div>
         <div className="arena-right">
-          <NegotiationPanel negotiation={current} inputEnabled={false} />
+          <NegotiationPanel negotiation={current} inputEnabled={false} item={activeItem} />
         </div>
       </div>
     </div>
