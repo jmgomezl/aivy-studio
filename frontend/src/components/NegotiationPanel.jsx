@@ -35,8 +35,17 @@ export default function NegotiationPanel({
   const n = negotiation;
   const prob = n?.sellProbability;
   const verdict = n?.verdict;
-  const evaluating = n?.status === 'evaluating' && !verdict;
   const lastOffer = n?.offers?.[n.offers.length - 1];
+  const evaluating = n?.status === 'evaluating';
+  // Only an accepted deal is terminal. A reject/counter is interim — the
+  // negotiation keeps moving (a newer offer landed, the buyer is an autonomous
+  // agent that will counter, or we're re-evaluating). Show it as a LIVE, partial
+  // round, not a harsh final "rejected".
+  const dealClosed = verdict?.decision === 'accept';
+  const isAgentBuyer = String(lastOffer?.buyer ?? '').startsWith('agent:');
+  const negotiationLive =
+    !!verdict && !dealClosed && !n?.reveal &&
+    ((lastOffer?.sequence ?? 0) > (verdict?.sequence ?? 0) || isAgentBuyer || n?.status === 'evaluating');
 
   // Interleave offers + reasoning + verdict into a chat timeline by sequence.
   const messages = useMemo(() => {
@@ -206,28 +215,39 @@ export default function NegotiationPanel({
         )}
       </div>
 
-      {verdict && (
+      {verdict && dealClosed && (
         <div className="verdict">
-          <div className="verdict-icon">
-            {verdict.decision === 'accept' ? '☕' : verdict.decision === 'counter' ? '🔁' : '🚫'}
-          </div>
-          <div
-            className="verdict-title"
-            style={{ color: verdict.decision === 'accept' ? 'var(--accent)' : verdict.decision === 'counter' ? 'var(--yellow)' : 'var(--red)' }}
-          >
-            {verdict.decision === 'accept'
-              ? `${t('verdictAccept')} — ${lastOffer?.price} HBAR`
-              : verdict.decision === 'counter'
-              ? `${t('verdictCounter')}: ${verdict.counterPrice} HBAR`
-              : t('verdictReject')}
+          <div className="verdict-icon">🤝</div>
+          <div className="verdict-title" style={{ color: 'var(--accent)' }}>
+            {t('verdictAccept')} — {lastOffer?.price} HBAR
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <a
-              className="verdict-tx"
-              href={`https://hashscan.io/testnet/topic/0.0.9217269`}
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a className="verdict-tx" href={`https://hashscan.io/testnet/topic/0.0.9217269`} target="_blank" rel="noreferrer">
+              {t('viewOnHashscan')}
+            </a>
+            {(soundBlocked || verdict.audio) && (
+              <button className="verdict-tx" style={{ cursor: 'pointer', background: 'transparent' }} onClick={enableSound}>
+                🔊
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {verdict && !dealClosed && !n?.reveal && (
+        <div className={`verdict live ${negotiationLive ? 'pulsing' : ''}`}>
+          <div className="verdict-live-head">
+            <span className="verdict-live-dot" />
+            {negotiationLive ? t('negotiationLivePartial') : t('roundPartial')}
+          </div>
+          <div className="verdict-title" style={{ color: 'var(--yellow)', fontSize: 16 }}>
+            {verdict.decision === 'counter' && verdict.counterPrice
+              ? t('agentCountered', { price: verdict.counterPrice })
+              : t('agentHoldingOut')}
+          </div>
+          <div className="verdict-reason">{isAgentBuyer ? t('agentsNegotiating') : t('keepNegotiating')}</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <a className="verdict-tx" href={`https://hashscan.io/testnet/topic/0.0.9217269`} target="_blank" rel="noreferrer">
               {t('viewOnHashscan')}
             </a>
             {(soundBlocked || verdict.audio) && (
@@ -262,7 +282,7 @@ export default function NegotiationPanel({
         </div>
       )}
 
-      {inputEnabled && !verdict && (
+      {inputEnabled && !dealClosed && (
         <div className="offer-input">
           <div className="input-row">
             <div className="amt-wrap">

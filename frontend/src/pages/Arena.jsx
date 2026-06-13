@@ -66,6 +66,24 @@ export default function Arena() {
 
   const closed = feed.filter((e) => e.type === 'agent_verdict');
 
+  // A verdict is "interim" (the negotiation kept going) when a later offer exists
+  // for that negotiation — so a below-reserve reject is a live round, not a final no.
+  const lastOfferSeq = useMemo(() => {
+    const m = {};
+    for (const e of feed) if (e.type === 'offer' && e.negotiationId) m[e.negotiationId] = Math.max(m[e.negotiationId] || 0, e.sequence || 0);
+    return m;
+  }, [feed]);
+  const isInterim = (e) => (lastOfferSeq[e.negotiationId] || 0) > (e.sequence || 0);
+
+  // Negotiations driven by an autonomous buyer agent — their below-reserve rejects
+  // are hold-outs in an ongoing barter, not a final no.
+  const agentNegs = useMemo(() => {
+    const s = new Set();
+    for (const e of feed) if (e.type === 'offer' && String(e.buyer ?? '').startsWith('agent:') && e.negotiationId) s.add(e.negotiationId);
+    return s;
+  }, [feed]);
+  const stillNegotiating = (e) => isInterim(e) || agentNegs.has(e.negotiationId);
+
   return (
     <div className="arena">
       <div className="ticker">
@@ -73,7 +91,13 @@ export default function Arena() {
           {[...closed, ...closed].slice(-24).map((e, i) => (
             <span className="ticker-item" key={i}>
               <span className="ticker-dot" />
-              {e.decision === 'accept' ? `DEAL CLOSED · ${e.negotiationId} ✓` : e.decision === 'counter' ? `COUNTER · ${e.negotiationId}` : `REJECTED · ${e.negotiationId}`}
+              {e.decision === 'accept'
+                ? `DEAL CLOSED · ${e.negotiationId} ✓`
+                : stillNegotiating(e)
+                ? `NEGOTIATING · ${e.negotiationId}`
+                : e.decision === 'counter'
+                ? `COUNTER · ${e.negotiationId}`
+                : `PASSED · ${e.negotiationId}`}
             </span>
           ))}
           {!closed.length && (
@@ -93,11 +117,18 @@ export default function Arena() {
             {[...feed].reverse().map((ev, i) => {
               const line = lineFor(ev);
               if (!line) return null; // skip empty/noise rows
-              const [label, cls] = badge(ev);
+              let [label, cls] = badge(ev);
+              let tone = rowTone(ev);
+              // Soften below-reserve rejects that were just a live round, not a final no.
+              if (ev.type === 'agent_verdict' && ev.decision !== 'accept' && stillNegotiating(ev)) {
+                label = ev.decision === 'counter' ? 'COUNTER' : 'HOLDING';
+                cls = 'b-offer';
+                tone = 'r-counter';
+              }
               const isOffer = ev.type === 'offer';
               const isAgentBuyer = isOffer && String(ev.buyer ?? '').startsWith('agent:');
               return (
-                <div className={`act-item ${rowTone(ev)}`} key={`${ev.sequence}-${i}`}>
+                <div className={`act-item ${tone}`} key={`${ev.sequence}-${i}`}>
                   <div className="act-av" style={{ background: 'rgba(0,255,135,.12)', color: 'var(--accent)' }}>
                     {isOffer ? (isAgentBuyer ? 'BA' : 'BU') : 'CA'}
                   </div>
