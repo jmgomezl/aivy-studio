@@ -20,7 +20,16 @@ export default function TelegramLogin({ onChange, es = false, role = 'seller' })
   const inTelegram = !!tg?.initDataUnsafe?.user;
   const [auth, setAuth] = useState(readTgAuth);
   const [config, setConfig] = useState(null);
+  const [copied, setCopied] = useState('');
   const widgetRef = useRef(null);
+
+  function copy(value, key) {
+    if (!value || !navigator.clipboard) return;
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(key);
+      window.setTimeout(() => setCopied(''), 1200);
+    }).catch(() => {});
+  }
 
   useEffect(() => {
     fetch('/api/auth/config').then((r) => r.json()).then(setConfig).catch(() => {});
@@ -97,10 +106,21 @@ export default function TelegramLogin({ onChange, es = false, role = 'seller' })
               // One key → both chains: EVM address + its Hedera EVM-alias account.
               const hedera = auth.profile?.hederaAccount || (evm ? `0.0.${evm.slice(2).toLowerCase()}` : '');
               const short = (s, head, tail = 0) => (s ? `${s.slice(0, head)}…${tail ? s.slice(-tail) : ''}` : '—');
+              const copyBtn = (value, key) => (
+                <button
+                  onClick={() => copy(value, key)}
+                  disabled={!value}
+                  title={es ? 'Copiar' : 'Copy'}
+                  style={{ background: 'transparent', border: 'none', cursor: value ? 'pointer' : 'default', color: copied === key ? 'var(--accent)' : 'var(--muted)', fontSize: 10, padding: 0, lineHeight: 1 }}
+                >
+                  {copied === key ? '✓' : '⧉'}
+                </button>
+              );
+              const rowStyle = { display: 'flex', alignItems: 'center', gap: 6 };
               return (
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 8.5, color: 'var(--muted)', lineHeight: 1.6 }}>
-                  <div>EVM <span style={{ color: 'var(--text)' }}>{short(evm, 8, 4)}</span></div>
-                  <div>Hedera <span style={{ color: 'var(--accent)' }}>{short(hedera, 10)}</span></div>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 8.5, color: 'var(--muted)', lineHeight: 1.7 }}>
+                  <div style={rowStyle}>EVM <span style={{ color: 'var(--text)' }}>{short(evm, 8, 4)}</span> {copyBtn(evm, 'evm')}</div>
+                  <div style={rowStyle}>Hedera <span style={{ color: 'var(--accent)' }}>{short(hedera, 10)}</span> {copyBtn(hedera, 'hedera')}</div>
                 </div>
               );
             })()}
