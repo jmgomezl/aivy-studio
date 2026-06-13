@@ -17,6 +17,7 @@ import '@xyflow/react/dist/style.css';
 import { useTranslation } from 'react-i18next';
 import { useNegotiationFeed } from '../lib/useNegotiation.js';
 import KickoffNode from '../components/nodes/KickoffNode.jsx';
+import StudioConsole from '../components/StudioConsole.jsx';
 import template from '../../../templates/kickoff.json';
 import { toggleLang } from '../i18n';
 import {
@@ -426,6 +427,57 @@ function buildSimulationSteps(nodes, edges) {
   return steps;
 }
 
+function consoleTime(ts) {
+  const d = ts ? new Date(Number(String(ts).split('.')[0]) * 1000) : new Date();
+  return d.toTimeString().slice(0, 8);
+}
+
+// Format a real HCS-10 WS event into a console line that shows its actual output.
+function liveEventLine(event, index) {
+  const seq = event.sequence != null ? `seq ${event.sequence}` : '';
+  const ts = consoleTime(event.consensusAt);
+  const tail = [ts, seq].filter(Boolean).join(' · ');
+  const id = `live-${event.sequence ?? index}-${event.type}`;
+
+  switch (event.type) {
+    case 'offer': {
+      const isAgent = String(event.buyer ?? '').startsWith('agent:');
+      return {
+        id, icon: isAgent ? '🤖' : '👤', tag: 'OFFER', tone: 'blue',
+        text: `${event.price} HBAR — “${event.argument}”`,
+        meta: `${isAgent ? 'buyer agent' : 'human'} · ${tail}`,
+      };
+    }
+    case 'agent_status':
+      return { id, icon: '⬡', tag: 'STATUS', tone: 'muted', text: event.status || '', meta: tail };
+    case 'agent_reasoning':
+      return {
+        id, icon: '⬡', tag: 'REASONING', tone: 'purple',
+        text: event.reasoning || '', meta: `p=${event.sellProbability}% · ${tail}`,
+      };
+    case 'agent_verdict': {
+      const tone = event.decision === 'accept' ? 'green' : event.decision === 'counter' ? 'yellow' : 'red';
+      const icon = event.decision === 'accept' ? '✅' : event.decision === 'counter' ? '🔁' : '🚫';
+      const text =
+        event.spokenVerdict ||
+        (event.decision === 'counter' && event.counterPrice ? `counter ${event.counterPrice} HBAR` : event.decision);
+      return { id, icon, tag: `VERDICT · ${event.decision}`, tone, text, meta: tail };
+    }
+    case 'settlement':
+      return {
+        id, icon: '💰', tag: 'SETTLEMENT', tone: 'yellow',
+        text: event.txId ? `tx ${String(event.txId).slice(0, 20)}…` : 'funds released', meta: tail,
+      };
+    case 'reveal':
+      return {
+        id, icon: '🔒', tag: 'REVEAL', tone: 'green',
+        text: `min ${event.minPrice} HBAR · accepted ${event.acceptedPrice} HBAR`, meta: tail,
+      };
+    default:
+      return { id, icon: '•', tag: String(event.type || 'event'), tone: 'muted', text: '', meta: tail };
+  }
+}
+
 export default function Studio() {
   const { t, i18n } = useTranslation();
   const { feed, connected } = useNegotiationFeed();
@@ -480,6 +532,7 @@ export default function Studio() {
   const [publishState, setPublishState] = useState('idle'); // idle | publishing | done | error
   const [dryRunState, setDryRunState] = useState('idle'); // idle | running | error
   const [dryRunResult, setDryRunResult] = useState(null); // { workflowName, steps, ... }
+  const [consoleOpen, setConsoleOpen] = useState(true);
   const onConnect = useCallback(
     (connection) => {
       if (connection.source === connection.target) {
@@ -585,6 +638,27 @@ export default function Studio() {
     });
   }, [active, edges, nodes, simulationStep, simulationSteps, t]);
   const simulationProgress = `${Math.min(simulationStep, simulationSteps.length)}/${simulationSteps.length}`;
+
+  // Console feed: real WS events in live mode, simulation steps in sim mode.
+  // This is what makes "Activate" show actual outputs, not just node colors.
+  const consoleLines = useMemo(() => {
+    if (isKickoffWorkflow) {
+      const tracked = new Set(['offer', 'agent_status', 'agent_reasoning', 'agent_verdict', 'settlement', 'reveal']);
+      return feed.filter((e) => tracked.has(e.type)).map((e, i) => liveEventLine(e, i));
+    }
+    const toneByStatus = { done: 'green', current: 'yellow', queued: 'muted' };
+    return simulationTimeline
+      .slice(0, Math.max(simulationStep, 0) + 1)
+      .filter((entry) => entry.status !== 'queued')
+      .map((entry) => ({
+        id: entry.id,
+        icon: entry.icon,
+        tag: `STEP ${entry.stepNumber}`,
+        tone: toneByStatus[entry.status] || 'muted',
+        text: entry.title,
+        meta: entry.meta,
+      }));
+  }, [feed, isKickoffWorkflow, simulationStep, simulationTimeline]);
 
   useEffect(() => {
     if (selectedNodeId && !nodes.some((node) => node.id === selectedNodeId)) {
@@ -1432,6 +1506,16 @@ export default function Studio() {
             <MiniMap pannable zoomable style={{ background: '#0F0F18' }} />
           </ReactFlow>
           {connectionNotice && <div className="connection-notice">{connectionNotice}</div>}
+          {active && (
+            <StudioConsole
+              open={consoleOpen}
+              onToggle={() => setConsoleOpen((v) => !v)}
+              lines={consoleLines}
+              title={t('consoleTitle')}
+              subtitle={isKickoffWorkflow ? t('consoleLiveSub') : t('consoleSimSub')}
+              emptyLabel={isKickoffWorkflow ? t('consoleWaiting') : t('consoleSimWaiting')}
+            />
+          )}
           {selectedNode && (
             <div className="node-inspector">
               <div className="sidebar-title">{t('inspector')}</div>
