@@ -16,11 +16,15 @@ const TRADE_API = process.env.UNISWAP_TRADE_API || 'https://trade-api.gateway.un
 
 // Minimal chain registry — extend as needed.
 const CHAINS = {
+  11155111: { name: 'ethereum-sepolia', rpc: 'https://ethereum-sepolia-rpc.publicnode.com' },
   1301: { name: 'unichain-sepolia', rpc: 'https://sepolia.unichain.org' },
   84532: { name: 'base-sepolia', rpc: 'https://sepolia.base.org' },
   130: { name: 'unichain', rpc: 'https://mainnet.unichain.org' },
   8453: { name: 'base', rpc: 'https://mainnet.base.org' },
 };
+
+const NATIVE = '0x0000000000000000000000000000000000000000';
+const isNative = (t) => !t || t === 'native' || t.toLowerCase() === NATIVE;
 
 function signer(chainId) {
   const chain = CHAINS[chainId];
@@ -57,21 +61,22 @@ const swapTool = (context) => ({
   async execute(_client, _ctx, params) {
     const { tokenIn, tokenOut, amountIn, chainId, slippageBps } = params;
     const wallet = signer(chainId);
+    const tokenInAddr = isNative(tokenIn) ? NATIVE : tokenIn;
 
     // 1. Quote
     const quote = await uniswap('/quote', {
       type: 'EXACT_INPUT',
       tokenInChainId: chainId,
       tokenOutChainId: chainId,
-      tokenIn,
+      tokenIn: tokenInAddr,
       tokenOut,
       amount: amountIn,
       swapper: wallet.address,
       slippageTolerance: slippageBps / 100,
     });
 
-    // 2. Approval (ERC-20 in)
-    if (tokenIn !== 'native') {
+    // 2. Approval (ERC-20 in only; native needs none)
+    if (!isNative(tokenIn)) {
       const approval = await uniswap('/check_approval', {
         token: tokenIn,
         amount: amountIn,

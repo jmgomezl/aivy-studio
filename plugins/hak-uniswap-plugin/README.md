@@ -55,7 +55,11 @@ When `KICKOFF_LEDGER_THRESHOLD` is set and a swap exceeds it, the tool returns
 that to a hardware-wallet Clear-Sign flow so high-value swaps need explicit human
 approval. Autonomous below the line, device-gated above it.
 
-## Status
+## Proof — real on-chain swap
 
-Plugin shape and swap flow are complete. Live execution requires a Uniswap API
-key + a funded EVM signer on the target chain (testnet tx IDs accepted).
+Executed by a HAK agent through this plugin (native ETH → USDC, Ethereum Sepolia):
+
+- **tx:** [`0x69babe82…2ea5fc`](https://sepolia.etherscan.io/tx/0x69babe822b2a418696c8ff2e0064a646f6c3747bc9e54659ee5beb99de2ea5fc) — status **SUCCESS**, block 11049036
+- input 0.001 ETH → output ~24.37 USDC, routed by the Uniswap Trading API
+
+Reproduce: `node scripts/test-uniswap-swap.js` (with `UNISWAP_API_KEY` + a funded signer).
