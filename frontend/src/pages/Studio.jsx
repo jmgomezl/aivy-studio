@@ -11,6 +11,7 @@ import {
   useNodesState,
   useEdgesState,
   addEdge,
+  MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useTranslation } from 'react-i18next';
@@ -22,17 +23,25 @@ import { deleteWorkflow, readWorkflows, saveWorkflow } from '../lib/workflowStor
 
 const nodeTypes = { kickoffNode: KickoffNode };
 
-const edgeStyle = { stroke: '#1C1C2E', strokeWidth: 1.5 };
-const edgeLabelStyle = { fill: '#55556A', fontFamily: 'Space Mono', fontSize: 9 };
+const edgeStyle = { stroke: '#4B4B68', strokeWidth: 1.7 };
+const selectedEdgeStyle = { stroke: '#00FF87', strokeWidth: 2.6 };
+const activeEdgeStyle = { stroke: '#00FF87', strokeWidth: 2.2 };
+const edgeLabelStyle = { fill: '#D6D6E7', fontFamily: 'Space Mono', fontSize: 9, fontWeight: 700 };
 const edgeLabelBgStyle = { fill: '#0F0F18' };
+const edgeMarker = { type: MarkerType.ArrowClosed, width: 14, height: 14, color: edgeStyle.stroke };
+const selectedEdgeMarker = { ...edgeMarker, color: selectedEdgeStyle.stroke };
 
 function styleEdges(edges, animated = false) {
   return edges.map((edge) => ({
     ...edge,
+    type: 'smoothstep',
     animated,
     style: edgeStyle,
+    markerEnd: edgeMarker,
     labelStyle: edgeLabelStyle,
     labelBgStyle: edgeLabelBgStyle,
+    labelBgPadding: [6, 3],
+    labelBgBorderRadius: 4,
   }));
 }
 
@@ -212,6 +221,8 @@ export default function Studio() {
   const [workflowName, setWorkflowName] = useState(template.name);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
+  const [nodeClipboard, setNodeClipboard] = useState(null);
+  const [connectionNotice, setConnectionNotice] = useState('');
   const paletteNodes = useMemo(
     () => [
       { kind: 'agent', icon: '🤖', color: '#A78BFA', title: t('palette.agent.title'), sub: t('palette.agent.sub'), detail: t('palette.agent.detail') },
@@ -238,24 +249,52 @@ export default function Studio() {
   const [importError, setImportError] = useState('');
   const onConnect = useCallback(
     (connection) => {
+      if (connection.source === connection.target) {
+        setConnectionNotice(t('selfConnectionBlocked'));
+        return;
+      }
+
+      const existingEdge = edges.find(
+        (edge) =>
+          edge.source === connection.source &&
+          edge.target === connection.target &&
+          (edge.sourceHandle || null) === (connection.sourceHandle || null) &&
+          (edge.targetHandle || null) === (connection.targetHandle || null)
+      );
+
+      if (existingEdge) {
+        setSelectedNodeId(null);
+        setSelectedEdgeId(existingEdge.id);
+        setConnectionNotice(t('duplicateConnectionBlocked'));
+        return;
+      }
+
       const sourceNode = nodes.find((node) => node.id === connection.source);
       const targetNode = nodes.find((node) => node.id === connection.target);
+      const edgeId = `edge-${connection.source}-${connection.target}-${Date.now().toString(36)}`;
       setEdges((eds) =>
         addEdge(
           {
             ...connection,
-            id: `edge-${connection.source}-${connection.target}-${Date.now().toString(36)}`,
+            id: edgeId,
+            type: 'smoothstep',
             label: defaultEdgeLabel(sourceNode, targetNode),
             animated: active,
             style: edgeStyle,
+            markerEnd: edgeMarker,
             labelStyle: edgeLabelStyle,
             labelBgStyle: edgeLabelBgStyle,
+            labelBgPadding: [6, 3],
+            labelBgBorderRadius: 4,
           },
           eds
         )
       );
+      setSelectedNodeId(null);
+      setSelectedEdgeId(edgeId);
+      markWorkflowEditable();
     },
-    [active, nodes, setEdges]
+    [active, edges, nodes, setEdges, t]
   );
 
   const selectedNode = useMemo(() => nodes.find((node) => node.id === selectedNodeId), [nodes, selectedNodeId]);
@@ -291,6 +330,12 @@ export default function Studio() {
   }, [saveNotice]);
 
   useEffect(() => {
+    if (!connectionNotice) return undefined;
+    const timer = window.setTimeout(() => setConnectionNotice(''), 2200);
+    return () => window.clearTimeout(timer);
+  }, [connectionNotice]);
+
+  useEffect(() => {
     if (!active || isKickoffWorkflow || !simulationSteps.length) {
       setSimulationStep(0);
       return undefined;
@@ -305,6 +350,37 @@ export default function Studio() {
 
     return () => window.clearInterval(timer);
   }, [active, isKickoffWorkflow, simulationAuto, simulationDelay, simulationStep, simulationSteps.length]);
+
+  useEffect(() => {
+    function onKeyDown(event) {
+      const target = event.target;
+      const tagName = target?.tagName?.toLowerCase();
+      const isEditingText = tagName === 'input' || tagName === 'textarea' || target?.isContentEditable;
+      if (isEditingText) return;
+
+      const isModKey = event.metaKey || event.ctrlKey;
+      const key = event.key.toLowerCase();
+      if ((event.key === 'Delete' || event.key === 'Backspace') && (selectedNode || selectedEdge)) {
+        event.preventDefault();
+        deleteSelection();
+      }
+      if (isModKey && key === 'c' && selectedNode) {
+        event.preventDefault();
+        copySelectedNode();
+      }
+      if (isModKey && key === 'v' && nodeClipboard) {
+        event.preventDefault();
+        pasteNode();
+      }
+      if (isModKey && key === 'd' && selectedNode) {
+        event.preventDefault();
+        duplicateSelectedNode();
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [nodeClipboard, selectedEdge, selectedNode]);
 
   // When the flow is active, light nodes up from real events.
   const lastEvent = feed[feed.length - 1];
@@ -325,16 +401,19 @@ export default function Studio() {
   }, [nodes, active, isKickoffWorkflow, lastEvent, simulationHot.nodes]);
 
   const displayEdges = useMemo(() => {
-    if (!active || isKickoffWorkflow) return edges;
+    if (!active && !selectedEdgeId) return edges;
     return edges.map((edge) => {
       const hot = simulationHot.edges.has(edge.id);
+      const selected = edge.id === selectedEdgeId;
       return {
         ...edge,
-        animated: hot,
-        style: hot ? { ...edgeStyle, stroke: '#00FF87', strokeWidth: 2 } : edgeStyle,
+        selected,
+        animated: hot || selected,
+        style: selected ? selectedEdgeStyle : hot && !isKickoffWorkflow ? activeEdgeStyle : edgeStyle,
+        markerEnd: selected ? selectedEdgeMarker : hot && !isKickoffWorkflow ? selectedEdgeMarker : edgeMarker,
       };
     });
-  }, [active, edges, isKickoffWorkflow, simulationHot.edges]);
+  }, [active, edges, isKickoffWorkflow, selectedEdgeId, simulationHot.edges]);
 
   const activationLabel = active ? `■ ${t('stop')}` : `▶ ${isKickoffWorkflow ? t('listenLive') : t('simulate')}`;
   const activeStatus = isKickoffWorkflow ? t('activeLiveFlow') : t('activeSimulation');
@@ -368,12 +447,20 @@ export default function Studio() {
     }
   }
 
+  function markWorkflowEditable() {
+    setActive(false);
+    setSimulationStep(0);
+    setCurrentWorkflowId((id) => (id === 'kickoff' ? null : id));
+    setConnectionNotice('');
+  }
+
   function loadKickoffTemplate() {
     const templateNodes = cloneNodes(template.nodes);
     const templateEdges = styleEdges(template.edges);
     setActive(false);
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
+    setNodeClipboard(null);
     setCurrentWorkflowId('kickoff');
     setWorkflowName(template.name);
     setNodes(templateNodes);
@@ -381,6 +468,7 @@ export default function Studio() {
     setLastCleanSnapshot(workflowSnapshot(template.name, templateNodes, templateEdges));
     setSaveNotice(false);
     setImportError('');
+    setConnectionNotice('');
   }
 
   function loadSavedWorkflow(workflow) {
@@ -390,6 +478,7 @@ export default function Studio() {
     setActive(false);
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
+    setNodeClipboard(null);
     setCurrentWorkflowId(workflow.id);
     setWorkflowName(name);
     setNodes(workflowNodes);
@@ -397,6 +486,7 @@ export default function Studio() {
     setLastCleanSnapshot(workflowSnapshot(name, workflowNodes, workflowEdges));
     setSaveNotice(false);
     setImportError('');
+    setConnectionNotice('');
   }
 
   function newWorkflow() {
@@ -404,6 +494,7 @@ export default function Studio() {
     setActive(false);
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
+    setNodeClipboard(null);
     setCurrentWorkflowId(null);
     setWorkflowName(name);
     setNodes([]);
@@ -411,6 +502,7 @@ export default function Studio() {
     setLastCleanSnapshot(workflowSnapshot(name, [], []));
     setSaveNotice(false);
     setImportError('');
+    setConnectionNotice('');
   }
 
   function persistWorkflow() {
@@ -470,6 +562,7 @@ export default function Studio() {
       setActive(false);
       setSelectedNodeId(null);
       setSelectedEdgeId(null);
+      setNodeClipboard(null);
       setCurrentWorkflowId(null);
       setWorkflowName(imported.name);
       setNodes(importedNodes);
@@ -477,6 +570,7 @@ export default function Studio() {
       setLastCleanSnapshot('');
       setSaveNotice(false);
       setImportError('');
+      setConnectionNotice('');
     } catch {
       setImportError(t('importJsonError'));
     }
@@ -514,6 +608,70 @@ export default function Studio() {
     setNodes((nds) => nds.concat(node));
     setSelectedNodeId(id);
     setSelectedEdgeId(null);
+  }
+
+  function buildCopiedNode(node, offset = 40) {
+    const id = `${node.data?.kind || 'node'}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    return {
+      ...node,
+      id,
+      selected: false,
+      position: {
+        x: node.position.x + offset,
+        y: node.position.y + offset,
+      },
+      data: {
+        ...node.data,
+        live: false,
+        title: `${node.data?.title || t('node')} ${t('copySuffix')}`,
+      },
+    };
+  }
+
+  function copySelectedNode() {
+    if (!selectedNode) return;
+    setNodeClipboard({
+      ...selectedNode,
+      position: { ...selectedNode.position },
+      data: { ...selectedNode.data, live: false },
+    });
+  }
+
+  function duplicateSelectedNode() {
+    if (!selectedNode) return;
+    const duplicate = buildCopiedNode(selectedNode);
+    markWorkflowEditable();
+    setNodes((nds) => nds.concat(duplicate));
+    setSelectedNodeId(duplicate.id);
+    setSelectedEdgeId(null);
+  }
+
+  function pasteNode() {
+    if (!nodeClipboard) return;
+    const pasted = buildCopiedNode(nodeClipboard, selectedNode ? 52 : 40);
+    markWorkflowEditable();
+    setNodes((nds) => nds.concat(pasted));
+    setSelectedNodeId(pasted.id);
+    setSelectedEdgeId(null);
+  }
+
+  function deleteSelection() {
+    if (selectedNode) {
+      const nodeId = selectedNode.id;
+      markWorkflowEditable();
+      setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+      setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
+      setSelectedNodeId(null);
+      setSelectedEdgeId(null);
+      return;
+    }
+
+    if (selectedEdge) {
+      const edgeId = selectedEdge.id;
+      markWorkflowEditable();
+      setEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
+      setSelectedEdgeId(null);
+    }
   }
 
   function updateSelectedNode(field, value) {
@@ -679,6 +837,7 @@ export default function Studio() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            connectionLineStyle={selectedEdgeStyle}
             onInit={setReactFlowInstance}
             onNodeClick={(_, node) => {
               setSelectedNodeId(node.id);
@@ -701,9 +860,24 @@ export default function Studio() {
             <Controls />
             <MiniMap pannable zoomable style={{ background: '#0F0F18' }} />
           </ReactFlow>
+          {connectionNotice && <div className="connection-notice">{connectionNotice}</div>}
           {selectedNode && (
             <div className="node-inspector">
               <div className="sidebar-title">{t('inspector')}</div>
+              <div className="inspector-actions">
+                <button className="btn-ghost" onClick={duplicateSelectedNode}>
+                  {t('duplicate')}
+                </button>
+                <button className="btn-ghost" onClick={copySelectedNode}>
+                  {t('copy')}
+                </button>
+                <button className="btn-ghost" onClick={pasteNode} disabled={!nodeClipboard}>
+                  {t('paste')}
+                </button>
+                <button className="btn-ghost danger" onClick={deleteSelection}>
+                  {t('delete')}
+                </button>
+              </div>
               <label className="inspector-field">
                 <span>{t('title')}</span>
                 <input value={selectedNode.data.title || ''} onChange={(event) => updateSelectedNode('title', event.target.value)} />
@@ -721,6 +895,11 @@ export default function Studio() {
           {selectedEdge && (
             <div className="node-inspector">
               <div className="sidebar-title">{t('edgeInspector')}</div>
+              <div className="inspector-actions single">
+                <button className="btn-ghost danger" onClick={deleteSelection}>
+                  {t('deleteEdge')}
+                </button>
+              </div>
               <label className="inspector-field">
                 <span>{t('label')}</span>
                 <input value={selectedEdge.label || ''} onChange={(event) => updateSelectedEdge('label', event.target.value)} />

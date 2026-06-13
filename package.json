@@ -11,6 +11,7 @@
     "@ensdomains/ensjs": "^4.2.3",
     "@hashgraph/sdk": "^2.81.0",
     "@hashgraphonline/standards-sdk": "^0.1.184",
+    "@worldcoin/idkit-core": "^4.1.8",
     "dotenv": "^17.4.2",
     "ethers": "^6.16.0",
     "express": "^5.2.1",

@@ -1,50 +1,60 @@
-// World ID — proof-of-human gating for offers.
-// "One verified human, one offer per listing" makes the story-beats-money
-// mechanic sybil-resistant: a single entity can't flood the auction with bot
-// offers. Proof is verified SERVER-SIDE via World's cloud verify endpoint
-// (required by the bounty), then the unique nullifier is recorded.
-const APP_ID = process.env.WORLD_APP_ID; // app_...
+// World ID 4.0 — proof-of-human gating for offers.
+// 4-party flow: client (IDKit) ↔ our backend (signs RP requests + verifies
+// proofs) ↔ World App ↔ Developer Portal. "One verified human, one offer per
+// listing" makes the story-beats-money mechanic sybil-resistant.
+//
+// Backend responsibilities:
+//   1. /rp-signature — sign a proof request with our RP signing key (secret)
+//   2. /verify       — forward the proof to POST /api/v4/verify/{rp_id}, then
+//                      enforce nullifier uniqueness
+import { signRequest } from '@worldcoin/idkit-core/signing';
+
+const APP_ID = process.env.WORLD_APP_ID;          // app_...
+const RP_ID = process.env.WORLD_RP_ID;            // rp_...
+const SIGNING_KEY = process.env.RP_SIGNING_KEY;   // 32-byte hex (secret)
 const ACTION = process.env.WORLD_ACTION || 'make-offer';
 
-export const worldIdEnabled = !!APP_ID;
+export const worldIdEnabled = !!(APP_ID && RP_ID && SIGNING_KEY);
+export const worldConfig = { appId: APP_ID, rpId: RP_ID, action: ACTION };
 
-// nullifier_hash -> Set(negotiationId/listingId) it has already offered on
+// nullifier -> Set(scope) it has already offered on (sybil resistance)
 const offered = new Map();
 
+/** Produce an RP signature for a proof request (never expose the signing key). */
+export function rpSignature(action = ACTION) {
+  const { sig, nonce, createdAt, expiresAt } = signRequest({ signingKeyHex: SIGNING_KEY, action });
+  return { sig, nonce, created_at: createdAt, expires_at: expiresAt };
+}
+
 /**
- * Verify a World ID proof against World's cloud endpoint.
+ * Verify an IDKit 4.0 response against the Developer Portal, then enforce
+ * one-offer-per-human-per-scope.
  * @returns {Promise<{ok:boolean, nullifier?:string, detail?:string}>}
  */
-export async function verifyProof({ proof, merkle_root, nullifier_hash, verification_level, signal }) {
-  if (!APP_ID) return { ok: false, detail: 'WORLD_APP_ID not configured' };
+export async function verifyProof(idkitResponse, scope) {
+  if (!worldIdEnabled) return { ok: false, detail: 'World ID not configured' };
   try {
-    const res = await fetch(`https://developer.worldcoin.org/api/v2/verify/${APP_ID}`, {
+    const res = await fetch(`https://developer.world.org/api/v4/verify/${RP_ID}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nullifier_hash,
-        merkle_root,
-        proof,
-        verification_level,
-        action: ACTION,
-        signal_hash: signal, // bind the proof to the offer context
-      }),
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(idkitResponse),
     });
-    if (res.ok) return { ok: true, nullifier: nullifier_hash };
-    const body = await res.json().catch(() => ({}));
-    return { ok: false, detail: body.detail || `verify HTTP ${res.status}` };
+    if (!res.ok) {
+      const body = await res.text();
+      return { ok: false, detail: `verify ${res.status}: ${body.slice(0, 160)}` };
+    }
+    // nullifier(s) live in the response payload
+    const nullifier = idkitResponse?.responses?.[0]?.nullifier;
+    if (!nullifier) return { ok: false, detail: 'no nullifier in response' };
+
+    if (scope) {
+      const seen = offered.get(nullifier) ?? new Set();
+      if (seen.has(scope)) return { ok: false, detail: 'this human already offered on this item' };
+      seen.add(scope);
+      offered.set(nullifier, seen);
+    }
+    return { ok: true, nullifier };
   } catch (err) {
     return { ok: false, detail: err.message };
   }
 }
-
-/** Enforce one offer per verified human per listing. */
-export function claimOffer(nullifier, scope) {
-  const seen = offered.get(nullifier) ?? new Set();
-  if (seen.has(scope)) return false; // already offered on this listing
-  seen.add(scope);
-  offered.set(nullifier, seen);
-  return true;
-}
-
-export const worldConfig = { appId: APP_ID, action: ACTION };
