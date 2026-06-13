@@ -5,6 +5,12 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'JBFqnCBsd6RMkjVDRZzb'; // George
 
 export async function speakVerdict(text, outPath = `audio/verdict-${Date.now()}.mp3`) {
+  // Paused by default — voice is opt-in (set VOICE_ENABLED=true to auto-narrate
+  // verdicts). Keeps ElevenLabs quota for on-demand / the future spoken-negotiation
+  // feature instead of spending it on every verdict.
+  if (process.env.VOICE_ENABLED !== 'true') {
+    return null;
+  }
   if (!process.env.ELEVENLABS_API_KEY) {
     console.log('[voice] ELEVENLABS_API_KEY not set — skipping audio');
     return null;
