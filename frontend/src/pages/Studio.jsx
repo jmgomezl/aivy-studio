@@ -71,10 +71,58 @@ function cleanEdges(edges) {
   }));
 }
 
+function buildSimulationSteps(nodes, edges) {
+  if (!nodes.length) return [];
+
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const incoming = new Map(nodes.map((node) => [node.id, 0]));
+  const outgoing = new Map(nodes.map((node) => [node.id, []]));
+
+  edges.forEach((edge) => {
+    if (!byId.has(edge.source) || !byId.has(edge.target)) return;
+    incoming.set(edge.target, (incoming.get(edge.target) || 0) + 1);
+    outgoing.get(edge.source)?.push(edge);
+  });
+
+  const sortByPosition = (a, b) => {
+    const aNode = byId.get(a.target || a.id);
+    const bNode = byId.get(b.target || b.id);
+    return (aNode?.position.x || 0) - (bNode?.position.x || 0) || (aNode?.position.y || 0) - (bNode?.position.y || 0);
+  };
+
+  outgoing.forEach((nodeEdges) => nodeEdges.sort(sortByPosition));
+
+  const roots = nodes
+    .filter((node) => !incoming.get(node.id))
+    .sort((a, b) => a.position.x - b.position.x || a.position.y - b.position.y);
+  const queue = roots.length ? roots : [...nodes].sort((a, b) => a.position.x - b.position.x || a.position.y - b.position.y);
+  const seen = new Set();
+  const steps = [];
+
+  while (queue.length) {
+    const node = queue.shift();
+    if (!node || seen.has(node.id)) continue;
+    seen.add(node.id);
+    steps.push({ nodeId: node.id });
+
+    for (const edge of outgoing.get(node.id) || []) {
+      steps.push({ nodeId: edge.target, edgeId: edge.id });
+      queue.push(byId.get(edge.target));
+    }
+  }
+
+  for (const node of nodes) {
+    if (!seen.has(node.id)) steps.push({ nodeId: node.id });
+  }
+
+  return steps;
+}
+
 export default function Studio() {
   const { t, i18n } = useTranslation();
   const { feed, connected } = useNegotiationFeed();
   const [active, setActive] = useState(false);
+  const [simulationStep, setSimulationStep] = useState(0);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [savedWorkflows, setSavedWorkflows] = useState(() => readWorkflows());
   const [currentWorkflowId, setCurrentWorkflowId] = useState('kickoff');
@@ -119,6 +167,15 @@ export default function Studio() {
   );
 
   const selectedNode = useMemo(() => nodes.find((node) => node.id === selectedNodeId), [nodes, selectedNodeId]);
+  const isKickoffWorkflow = currentWorkflowId === 'kickoff';
+  const simulationSteps = useMemo(() => buildSimulationSteps(nodes, edges), [nodes, edges]);
+  const simulationHot = useMemo(() => {
+    const visibleSteps = simulationSteps.slice(0, simulationStep);
+    return {
+      nodes: new Set(visibleSteps.map((step) => step.nodeId)),
+      edges: new Set(visibleSteps.map((step) => step.edgeId).filter(Boolean)),
+    };
+  }, [simulationStep, simulationSteps]);
 
   useEffect(() => {
     if (selectedNodeId && !nodes.some((node) => node.id === selectedNodeId)) {
@@ -126,10 +183,27 @@ export default function Studio() {
     }
   }, [nodes, selectedNodeId]);
 
+  useEffect(() => {
+    if (!active || isKickoffWorkflow || !simulationSteps.length) {
+      setSimulationStep(0);
+      return undefined;
+    }
+
+    setSimulationStep(1);
+    const timer = window.setInterval(() => {
+      setSimulationStep((step) => (step >= simulationSteps.length ? 1 : step + 1));
+    }, 850);
+
+    return () => window.clearInterval(timer);
+  }, [active, isKickoffWorkflow, simulationSteps.length]);
+
   // When the flow is active, light nodes up from real events.
   const lastEvent = feed[feed.length - 1];
   const liveNodes = useMemo(() => {
     if (!active) return nodes;
+    if (!isKickoffWorkflow) {
+      return nodes.map((n) => ({ ...n, data: { ...n.data, live: simulationHot.nodes.has(n.id) } }));
+    }
     const hot = new Set(['hcs10']);
     if (lastEvent?.type === 'offer') hot.add('buyer');
     if (lastEvent?.type === 'agent_reasoning' || lastEvent?.type === 'agent_status') hot.add('seller-agent');
@@ -139,11 +213,32 @@ export default function Studio() {
       if (lastEvent.decision === 'accept') hot.add('escrow');
     }
     return nodes.map((n) => ({ ...n, data: { ...n.data, live: hot.has(n.id) } }));
-  }, [nodes, active, lastEvent]);
+  }, [nodes, active, isKickoffWorkflow, lastEvent, simulationHot.nodes]);
+
+  const displayEdges = useMemo(() => {
+    if (!active || isKickoffWorkflow) return edges;
+    return edges.map((edge) => {
+      const hot = simulationHot.edges.has(edge.id);
+      return {
+        ...edge,
+        animated: hot,
+        style: hot ? { ...edgeStyle, stroke: '#00FF87', strokeWidth: 2 } : edgeStyle,
+      };
+    });
+  }, [active, edges, isKickoffWorkflow, simulationHot.edges]);
+
+  const activationLabel = active ? `■ ${t('stop')}` : `▶ ${isKickoffWorkflow ? t('listenLive') : t('simulate')}`;
+  const activeStatus = isKickoffWorkflow ? t('activeLiveFlow') : t('activeSimulation');
 
   function activate() {
-    setActive((a) => !a);
-    setEdges((eds) => eds.map((e) => ({ ...e, animated: !active })));
+    const nextActive = !active;
+    setActive(nextActive);
+    if (isKickoffWorkflow) {
+      setEdges((eds) => eds.map((e) => ({ ...e, animated: nextActive })));
+    } else {
+      setSimulationStep(0);
+      setEdges((eds) => eds.map((e) => ({ ...e, animated: false, style: edgeStyle })));
+    }
   }
 
   function loadKickoffTemplate() {
@@ -262,7 +357,7 @@ export default function Studio() {
             {i18n.language === 'es' ? 'EN' : 'ES'}
           </button>
           <button className="btn-primary" onClick={activate}>
-            {active ? '■ Stop' : `▶ ${t('activate')}`}
+            {activationLabel}
           </button>
         </div>
       </div>
@@ -349,14 +444,14 @@ export default function Studio() {
           </div>
           {active && (
             <div className="studio-status">
-              <div className="logo-dot" /> {t('activeFlow')}
+              <div className="logo-dot" /> {activeStatus}
             </div>
           )}
         </div>
         <div className="studio-canvas" onDrop={onDrop} onDragOver={onDragOver}>
           <ReactFlow
             nodes={liveNodes}
-            edges={edges}
+            edges={displayEdges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
