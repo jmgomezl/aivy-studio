@@ -49,7 +49,7 @@ function cloneNodes(nodes) {
   return nodes.map((node) => ({
     ...node,
     position: { ...node.position },
-    data: { ...node.data, live: false },
+    data: { ...node.data, config: { ...(node.data?.config || {}) }, live: false },
   }));
 }
 
@@ -65,6 +65,7 @@ function cleanNodes(nodes) {
       sub: data.sub,
       detail: data.detail,
       kind: data.kind,
+      config: Object.fromEntries(Object.entries(data.config || {}).filter(([, value]) => String(value || '').trim())),
     },
   }));
 }
@@ -104,6 +105,68 @@ function defaultEdgeLabel(sourceNode, targetNode) {
   return 'handoff';
 }
 
+const nodeConfigFields = {
+  agent: [
+    { key: 'model', type: 'select', options: ['gpt-4o', 'claude-4.5', 'local-llm'] },
+    { key: 'personality', type: 'select', options: ['analytical', 'charming', 'aggressive', 'neutral'] },
+    { key: 'tools', placeholder: 'hcs10, escrow, voice' },
+    { key: 'systemPrompt', type: 'textarea' },
+  ],
+  hcs10: [
+    { key: 'network', type: 'select', options: ['hedera-testnet', 'hedera-mainnet'] },
+    { key: 'topicId', placeholder: '0.0.xxxxxxx' },
+    { key: 'memo', placeholder: 'workflow-audit-channel' },
+    { key: 'retention', placeholder: '90 days' },
+  ],
+  escrow: [
+    { key: 'token', placeholder: 'HBAR / HTS token id' },
+    { key: 'amount', placeholder: '50' },
+    { key: 'releaseRule', type: 'select', options: ['on-accept', 'manual-approval', 'scheduled-release'] },
+    { key: 'refundWindow', placeholder: '24h' },
+  ],
+  contract: [
+    { key: 'chain', type: 'select', options: ['hedera-evm', 'ethereum', 'base'] },
+    { key: 'address', placeholder: '0x...' },
+    { key: 'functionName', placeholder: 'settleDeal' },
+    { key: 'gasLimit', placeholder: '250000' },
+  ],
+  approval: [
+    { key: 'wallet', placeholder: 'Ledger / Safe / account id' },
+    { key: 'threshold', placeholder: '<= 50 HBAR' },
+    { key: 'approvers', placeholder: 'ops, finance' },
+    { key: 'timeout', placeholder: '2h' },
+  ],
+  voice: [
+    { key: 'voiceId', placeholder: 'elevenlabs voice id' },
+    { key: 'model', placeholder: 'eleven_multilingual_v2' },
+    { key: 'language', type: 'select', options: ['en', 'es', 'pt'] },
+    { key: 'delivery', type: 'select', options: ['browser', 'telegram', 'webhook'] },
+  ],
+  human: [
+    { key: 'channel', type: 'select', options: ['telegram', 'web', 'email'] },
+    { key: 'requiredInput', placeholder: 'price + argument' },
+    { key: 'timeout', placeholder: '15m' },
+    { key: 'fallback', placeholder: 'route to agent' },
+  ],
+  scheduled: [
+    { key: 'schedule', placeholder: 'after approval' },
+    { key: 'executionWindow', placeholder: '30m' },
+    { key: 'payer', placeholder: '0.0.xxxxxxx' },
+    { key: 'memo', placeholder: 'scheduled settlement' },
+  ],
+  uniswap: [
+    { key: 'tokenIn', placeholder: 'USDC' },
+    { key: 'tokenOut', placeholder: 'HBAR' },
+    { key: 'slippage', placeholder: '0.5%' },
+    { key: 'router', placeholder: '0x...' },
+  ],
+  custom: [
+    { key: 'apiName', placeholder: 'external service' },
+    { key: 'endpoint', placeholder: 'https://...' },
+    { key: 'auth', type: 'select', options: ['none', 'api-key', 'oauth'] },
+  ],
+};
+
 function normalizeImportedWorkflow(value, fallbackName) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('invalid');
@@ -134,6 +197,10 @@ function normalizeImportedWorkflow(value, fallbackName) {
         sub: typeof data.sub === 'string' ? data.sub : '',
         detail: typeof data.detail === 'string' ? data.detail : '',
         kind: typeof data.kind === 'string' && data.kind ? data.kind : 'custom',
+        config:
+          data.config && typeof data.config === 'object' && !Array.isArray(data.config)
+            ? Object.fromEntries(Object.entries(data.config).map(([key, value]) => [key, String(value ?? '')]))
+            : {},
       },
     };
   });
@@ -299,6 +366,7 @@ export default function Studio() {
 
   const selectedNode = useMemo(() => nodes.find((node) => node.id === selectedNodeId), [nodes, selectedNodeId]);
   const selectedEdge = useMemo(() => edges.find((edge) => edge.id === selectedEdgeId), [edges, selectedEdgeId]);
+  const selectedNodeConfigFields = nodeConfigFields[selectedNode?.data?.kind] || nodeConfigFields.custom;
   const isKickoffWorkflow = currentWorkflowId === 'kickoff';
   const currentSnapshot = useMemo(() => workflowSnapshot(workflowName, nodes, edges), [edges, nodes, workflowName]);
   const hasUnsavedChanges = currentSnapshot !== lastCleanSnapshot;
@@ -600,7 +668,7 @@ export default function Studio() {
       id,
       type: 'kickoffNode',
       position,
-      data: { ...paletteNode },
+      data: { ...paletteNode, config: {} },
     };
 
     setActive(false);
@@ -622,6 +690,7 @@ export default function Studio() {
       },
       data: {
         ...node.data,
+        config: { ...(node.data?.config || {}) },
         live: false,
         title: `${node.data?.title || t('node')} ${t('copySuffix')}`,
       },
@@ -633,7 +702,7 @@ export default function Studio() {
     setNodeClipboard({
       ...selectedNode,
       position: { ...selectedNode.position },
-      data: { ...selectedNode.data, live: false },
+      data: { ...selectedNode.data, config: { ...(selectedNode.data?.config || {}) }, live: false },
     });
   }
 
@@ -677,6 +746,61 @@ export default function Studio() {
   function updateSelectedNode(field, value) {
     setNodes((nds) =>
       nds.map((node) => (node.id === selectedNodeId ? { ...node, data: { ...node.data, [field]: value } } : node))
+    );
+  }
+
+  function updateSelectedNodeConfig(field, value) {
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === selectedNodeId
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                config: {
+                  ...(node.data.config || {}),
+                  [field]: value,
+                },
+              },
+            }
+          : node
+      )
+    );
+  }
+
+  function renderNodeConfigField(field) {
+    const value = selectedNode?.data?.config?.[field.key] || '';
+    const label = t(`nodeConfig.${field.key}`);
+    if (field.type === 'select') {
+      return (
+        <label className="inspector-field" key={field.key}>
+          <span>{label}</span>
+          <select value={value} onChange={(event) => updateSelectedNodeConfig(field.key, event.target.value)}>
+            <option value="">{t('notSet')}</option>
+            {field.options.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
+      );
+    }
+
+    if (field.type === 'textarea') {
+      return (
+        <label className="inspector-field" key={field.key}>
+          <span>{label}</span>
+          <textarea value={value} placeholder={field.placeholder || ''} onChange={(event) => updateSelectedNodeConfig(field.key, event.target.value)} />
+        </label>
+      );
+    }
+
+    return (
+      <label className="inspector-field" key={field.key}>
+        <span>{label}</span>
+        <input value={value} placeholder={field.placeholder || ''} onChange={(event) => updateSelectedNodeConfig(field.key, event.target.value)} />
+      </label>
     );
   }
 
@@ -890,6 +1014,11 @@ export default function Studio() {
                 <span>{t('detail')}</span>
                 <textarea value={selectedNode.data.detail || ''} onChange={(event) => updateSelectedNode('detail', event.target.value)} />
               </label>
+              <div className="inspector-divider">
+                <span>{t('nodeSettings')}</span>
+                <strong>{selectedNode.data.kind || t('node')}</strong>
+              </div>
+              <div className="node-config-grid">{selectedNodeConfigFields.map(renderNodeConfigField)}</div>
             </div>
           )}
           {selectedEdge && (

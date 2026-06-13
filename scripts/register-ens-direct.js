@@ -11,9 +11,11 @@ import { addEnsContracts } from '@ensdomains/ensjs';
 import { setRecords, setResolver } from '@ensdomains/ensjs/wallet';
 import { randomBytes } from 'node:crypto';
 
-const CONTROLLER = '0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968';
+// The currently-AUTHORIZED Sepolia controller (ensjs bundles a stale/unauthorized one).
+// Discovered from a recent real BaseRegistrar.NameRegistered tx.
+const CONTROLLER = '0xdf60c561ca35ad3c89d24bba854654b1c3477078';
 const RESOLVER = '0xE99638b40E4Fff0129D56f03b55b6bbC4BBE49b5';
-const RPC = 'https://ethereum-sepolia-rpc.publicnode.com';
+const RPC = 'https://sepolia.drpc.org';
 const LABEL = process.env.ENS_LABEL || 'kickoffseller';
 const NAME = LABEL + '.eth';
 const DURATION = 31536000n;
