@@ -19,6 +19,15 @@ import { rpSignature, verifyProof, worldIdEnabled, worldConfig } from './worldid
 import { validateWorkflow, WorkflowValidationError } from './workflow-schema.js';
 import { saveWorkflow, getWorkflow, listWorkflows } from './workflows.js';
 import { executeDryRun } from './workflow-executor.js';
+import {
+  telegramAuthEnabled,
+  verifyTelegramAuth,
+  getOrCreateSellerWallet,
+  issueSession,
+  verifySession,
+} from './telegram-auth.js';
+
+const TELEGRAM_BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME || 'cryptokickoffbot';
 
 const PORT = Number(process.env.PORT || 8787);
 const TOPIC = process.env.HCS10_NEGOTIATION_TOPIC;
@@ -34,6 +43,10 @@ const app = express();
 app.use(express.json({ limit: '8mb' })); // generous for listing photos (base64)
 app.use('/audio', express.static('audio')); // agent-generated verdict mp3s
 app.use('/uploads', express.static('uploads')); // listing photos
+// Same files under /api so they load on subdomains whose nginx only proxies /api
+// (arena/studio) — a bare /uploads path there falls through to the SPA index.html.
+app.use('/api/audio', express.static('audio'));
+app.use('/api/uploads', express.static('uploads'));
 app.use((_, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -185,13 +198,53 @@ app.post('/api/world/verify', async (req, res) => {
   res.json({ ok: true, nullifier: result.nullifier });
 });
 
+// ── Telegram Login (web seller identity, no wallet) ──
+app.get('/api/auth/config', (_, res) =>
+  res.json({ enabled: telegramAuthEnabled, botUsername: TELEGRAM_BOT_USERNAME })
+);
+
+// Verify the Telegram widget payload → mint/lookup the seller's managed wallet →
+// issue a signed session. The client never handles a key.
+app.post('/api/auth/telegram', async (req, res) => {
+  const result = verifyTelegramAuth(req.body || {});
+  if (!result.ok) return res.status(401).json({ ok: false, error: `telegram auth failed (${result.reason})` });
+  try {
+    const wallet = await getOrCreateSellerWallet(result.profile);
+    const token = issueSession(result.profile, wallet.evmAddress);
+    res.json({
+      ok: true,
+      token,
+      profile: {
+        telegramId: result.profile.telegramId,
+        username: result.profile.username,
+        photoUrl: result.profile.photoUrl,
+        walletEvm: wallet.evmAddress,
+      },
+    });
+  } catch (err) {
+    console.error('[api/auth/telegram]', err.message);
+    res.status(500).json({ ok: false, error: 'could not provision seller wallet' });
+  }
+});
+
 // ── Seller listings ──
 app.get('/api/listings', (_, res) => res.json({ listings: getPublicListings(), active: getActiveListing() }));
 
 app.post('/api/listings', async (req, res) => {
   try {
-    const { name, description, minPriceHbar, photoDataUrl, seller } = req.body || {};
-    const listing = await createListing({ name, description, minPriceHbar, photoDataUrl, seller });
+    const { name, description, category, minPriceHbar, photoDataUrl, seller, authToken } = req.body || {};
+    // A verified Telegram session overrides the client-sent seller (can't be forged).
+    const session = authToken ? verifySession(authToken) : null;
+    const verifiedSeller = session ? `tg:${session.username || session.telegramId}` : null;
+    const listing = await createListing({
+      name,
+      description,
+      category,
+      minPriceHbar,
+      photoDataUrl,
+      seller: verifiedSeller || seller,
+      sellerWalletEvm: session?.walletEvm || null,
+    });
     res.json({ ok: true, listing });
   } catch (err) {
     console.error('[api/listings]', err.message);

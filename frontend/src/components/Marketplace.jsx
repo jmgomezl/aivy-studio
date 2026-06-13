@@ -4,6 +4,7 @@
 // NEW badge as fresh items arrive.
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { assetUrl } from '../lib/asset.js';
 
 const SIMULATED = [
   { emoji: '🎟️', name: 'World Cup Ticket · Col vs Mar', seller: 'Agent ALEX', price: 340, tag: 'analytical', cat: 'Tickets' },
@@ -103,7 +104,7 @@ export default function Marketplace() {
             {it.status !== 'sold' && (it.id === newId || it.justNow) && <span className="mkt-new">● {es ? 'NUEVO' : 'NEW'}</span>}
             {it.real && it.onChain && it.status !== 'sold' && <span className="mkt-onchain">🔒 on-chain</span>}
             <div className="mkt-thumb">
-              {it.photoUrl ? <img src={it.photoUrl} alt="" /> : <span style={{ fontSize: 30 }}>{it.emoji}</span>}
+              {it.photoUrl ? <img src={assetUrl(it.photoUrl)} alt="" /> : <span style={{ fontSize: 30 }}>{it.emoji}</span>}
             </div>
             <div className="mkt-name">{it.name}</div>
             <div className="mkt-meta">

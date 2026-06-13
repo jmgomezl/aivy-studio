@@ -89,7 +89,7 @@ const commitmentAbi = [
  * seller wallet, writes the active-listing file the agent reads, returns the
  * public listing (no secret price).
  */
-export async function createListing({ name, description, category, minPriceHbar, photoDataUrl, seller }) {
+export async function createListing({ name, description, category, minPriceHbar, photoDataUrl, seller, sellerWalletEvm }) {
   if (!name || !Number(minPriceHbar)) throw new Error('name and minPriceHbar required');
   const id = `lst-${Date.now().toString(36)}`;
   const photoUrl = savePhoto(id, photoDataUrl);
@@ -140,6 +140,7 @@ export async function createListing({ name, description, category, minPriceHbar,
     photoUrl,
     seller: seller || 'anonymous',
     sellerEvm: wallet.evmAddress,
+    ...(sellerWalletEvm ? { identityEvm: sellerWalletEvm } : {}),
     commitHash,
     commitmentTx,
     onChain,

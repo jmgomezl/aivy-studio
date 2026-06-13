@@ -2,6 +2,7 @@
 // Everything rendered here comes from real backend events (HCS-10 via WS).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { assetUrl } from '../lib/asset.js';
 
 const SELLER = { av: 'seller', label: 'CA' };
 
@@ -67,13 +68,13 @@ export default function NegotiationPanel({
     const v = n?.verdict;
     if (!v?.audio || playedRef.current.has(v.sequence)) return;
     playedRef.current.add(v.sequence);
-    new Audio(`/${v.audio}`).play().catch(() => setSoundBlocked(true));
+    new Audio(assetUrl(v.audio)).play().catch(() => setSoundBlocked(true));
   }, [n?.verdict]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function enableSound() {
     setSoundBlocked(false);
     const v = n?.verdict;
-    if (v?.audio) new Audio(`/${v.audio}`).play().catch(() => {});
+    if (v?.audio) new Audio(assetUrl(v.audio)).play().catch(() => {});
   }
 
   // Clear the optimistic bubble once the real offer lands from the chain.
@@ -117,7 +118,7 @@ export default function NegotiationPanel({
         <div className="neg-eyebrow">{t('liveNegotiation')}</div>
         <div className="neg-item-row">
           <div className="neg-emoji" style={item?.photoUrl ? { padding: 0, overflow: 'hidden' } : undefined}>
-            {item?.photoUrl ? <img src={item.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '☕'}
+            {item?.photoUrl ? <img src={assetUrl(item.photoUrl)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '☕'}
           </div>
           <div>
             <div className="neg-item-name">{item?.name || t('coffeeName')}</div>
