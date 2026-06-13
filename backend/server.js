@@ -14,7 +14,7 @@ import {
 } from '@hashgraph/sdk';
 import { fetchTopicMessages } from '../agent/hedera.js';
 import { deployBuyerAgent, getSession } from './buyer-agent.js';
-import { createListing, getPublicListings, getActiveListing } from './listings.js';
+import { createListing, getPublicListings, getActiveListing, markSold } from './listings.js';
 import { rpSignature, verifyProof, worldIdEnabled, worldConfig } from './worldid.js';
 
 const PORT = Number(process.env.PORT || 8787);
@@ -78,9 +78,13 @@ function applyMessage(m) {
     case 'settlement':
       n.settlement = event;
       break;
-    case 'reveal':
+    case 'reveal': {
       n.reveal = event;
+      // Deal closed → mark the active listing SOLD with the accepted price.
+      const active = getActiveListing();
+      if (active?.id) markSold(active.id, j.acceptedPrice);
       break;
+    }
   }
   state.feed.push(event);
   if (state.feed.length > 100) state.feed.shift();

@@ -38,6 +38,7 @@ export default function Marketplace() {
         const real = (listings || []).map((l) => ({
           id: l.id, emoji: '🏷️', name: l.name, seller: l.seller, price: null,
           tag: 'negotiator', real: true, active: l.id === activeId, onChain: l.onChain, photoUrl: l.photoUrl,
+          status: l.status, soldPrice: l.soldPrice,
         }));
         setItems([...real, ...SIMULATED.map((s, i) => ({ ...s, id: `sim-${i}` }))]);
       })
@@ -74,8 +75,9 @@ export default function Marketplace() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
         {items.map((it) => (
           <div key={it.id} className="mkt-card" style={it.id === newId ? { animation: 'mktPop .5s ease' } : undefined}>
-            {(it.id === newId || it.justNow) && <span className="mkt-new">● {es ? 'NUEVO' : 'NEW'}</span>}
-            {it.real && it.onChain && <span className="mkt-onchain">🔒 on-chain</span>}
+            {it.status === 'sold' && <span className="mkt-sold-badge">✓ {es ? 'VENDIDO' : 'SOLD'}</span>}
+            {it.status !== 'sold' && (it.id === newId || it.justNow) && <span className="mkt-new">● {es ? 'NUEVO' : 'NEW'}</span>}
+            {it.real && it.onChain && it.status !== 'sold' && <span className="mkt-onchain">🔒 on-chain</span>}
             <div className="mkt-thumb">
               {it.photoUrl ? <img src={it.photoUrl} alt="" /> : <span style={{ fontSize: 30 }}>{it.emoji}</span>}
             </div>
@@ -85,11 +87,17 @@ export default function Marketplace() {
               {it.seller}
             </div>
             <div className="mkt-foot">
-              <span className="mkt-price">{it.price != null ? `${it.price} HBAR` : (es ? 'Reserva oculta' : 'Hidden reserve')}</span>
-              {it.real && it.active
+              <span className="mkt-price">
+                {it.status === 'sold'
+                  ? `${it.soldPrice} HBAR`
+                  : it.price != null ? `${it.price} HBAR` : (es ? 'Reserva oculta' : 'Hidden reserve')}
+              </span>
+              {it.status === 'sold'
+                ? <span className="mkt-bid" style={{ color: 'var(--accent)', borderColor: 'rgba(0,255,135,.3)', cursor: 'default' }}>✓ {es ? 'Vendido' : 'Sold'}</span>
+                : it.real && it.active
                 ? <a href="/offer" className="mkt-bid">{es ? 'Ofertar' : 'Bid'}</a>
                 : it.real
-                ? <span className="mkt-bid" style={{ opacity: 0.5, cursor: 'default' }}>{es ? 'Cerrado' : 'Closed'}</span>
+                ? <span className="mkt-bid" style={{ opacity: 0.5, cursor: 'default' }}>{es ? 'Finalizado' : 'Ended'}</span>
                 : <a href="/arena" className="mkt-bid">{es ? 'Ver' : 'Watch'}</a>}
             </div>
           </div>

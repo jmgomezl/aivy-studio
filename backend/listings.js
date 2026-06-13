@@ -65,6 +65,20 @@ export function getActiveListing() {
   return existsSync(ACTIVE_FILE) ? JSON.parse(readFileSync(ACTIVE_FILE, 'utf8')) : null;
 }
 
+/** Mark a listing sold (deal accepted). Clears the active pointer if it was active. */
+export function markSold(listingId, soldPrice) {
+  const l = listings.find((x) => x.id === listingId);
+  if (!l || l.status === 'sold') return false;
+  l.status = 'sold';
+  l.soldPrice = soldPrice;
+  persist();
+  const active = getActiveListing();
+  if (active?.id === listingId) {
+    try { writeFileSync(ACTIVE_FILE, JSON.stringify({})); } catch {}
+  }
+  return true;
+}
+
 const commitmentAbi = [
   'function commit(bytes32 hash) payable',
   'function getCommitment(address) view returns (bytes32,uint256,bool,uint256)',
