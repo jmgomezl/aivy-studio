@@ -32,11 +32,12 @@ export default function Marketplace() {
     let cancelled = false;
     fetch('/api/listings')
       .then((r) => r.json())
-      .then(({ listings }) => {
+      .then(({ listings, active }) => {
         if (cancelled) return;
+        const activeId = active?.id;
         const real = (listings || []).map((l) => ({
-          id: l.id, emoji: '☕', name: l.name, seller: l.seller, price: null,
-          tag: 'negotiator', real: true, onChain: l.onChain, photoUrl: l.photoUrl,
+          id: l.id, emoji: '🏷️', name: l.name, seller: l.seller, price: null,
+          tag: 'negotiator', real: true, active: l.id === activeId, onChain: l.onChain, photoUrl: l.photoUrl,
         }));
         setItems([...real, ...SIMULATED.map((s, i) => ({ ...s, id: `sim-${i}` }))]);
       })
@@ -85,8 +86,10 @@ export default function Marketplace() {
             </div>
             <div className="mkt-foot">
               <span className="mkt-price">{it.price != null ? `${it.price} HBAR` : (es ? 'Reserva oculta' : 'Hidden reserve')}</span>
-              {it.real
+              {it.real && it.active
                 ? <a href="/offer" className="mkt-bid">{es ? 'Ofertar' : 'Bid'}</a>
+                : it.real
+                ? <span className="mkt-bid" style={{ opacity: 0.5, cursor: 'default' }}>{es ? 'Cerrado' : 'Closed'}</span>
                 : <a href="/arena" className="mkt-bid">{es ? 'Ver' : 'Watch'}</a>}
             </div>
           </div>

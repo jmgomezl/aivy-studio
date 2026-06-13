@@ -20,6 +20,7 @@ export default function NegotiationPanel({
   inputEnabled = true,
   buyerLabel,
   compact = false,
+  item = null,
 }) {
   const { t, i18n } = useTranslation();
   const [price, setPrice] = useState('');
@@ -106,9 +107,11 @@ export default function NegotiationPanel({
       <div className="neg-item-header">
         <div className="neg-eyebrow">{t('liveNegotiation')}</div>
         <div className="neg-item-row">
-          <div className="neg-emoji">☕</div>
+          <div className="neg-emoji" style={item?.photoUrl ? { padding: 0, overflow: 'hidden' } : undefined}>
+            {item?.photoUrl ? <img src={item.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '☕'}
+          </div>
           <div>
-            <div className="neg-item-name">{t('coffeeName')}</div>
+            <div className="neg-item-name">{item?.name || t('coffeeName')}</div>
             <div className="neg-item-sub">Kickoff Seller Agent · 0.0.9217340 · Hedera</div>
           </div>
           <div className="neg-price-area">

@@ -24,9 +24,20 @@ export default function Offer() {
   const [agentStatus, setAgentStatus] = useState(null);
   const [humanVerified, setHumanVerified] = useState(false);
   const [worldEnabled, setWorldEnabled] = useState(false);
+  const [activeItem, setActiveItem] = useState(null);
 
   useEffect(() => {
     fetch('/api/world/config').then((r) => r.json()).then((c) => setWorldEnabled(!!c.enabled)).catch(() => {});
+    // Show the actual active listing (name + photo) — not a hardcoded item.
+    fetch('/api/listings')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.active) {
+          const full = (d.listings || []).find((l) => l.id === d.active.id);
+          setActiveItem({ name: d.active.name, photoUrl: full?.photoUrl });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const tg = window.Telegram?.WebApp;
@@ -113,6 +124,7 @@ export default function Offer() {
       <NegotiationPanel
         negotiation={n}
         compact
+        item={activeItem}
         buyerLabel={buyer}
         inputEnabled={mode === 'human' && (!worldEnabled || humanVerified)}
         onSubmitOffer={(price, argument) => submitOffer({ negotiationId, price, argument, buyer })}
