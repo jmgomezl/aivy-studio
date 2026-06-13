@@ -8,6 +8,7 @@
     "demo:setup": "node scripts/demo-setup.js"
   },
   "dependencies": {
+    "@aws-sdk/client-kms": "^3.1068.0",
     "@ensdomains/ensjs": "^4.2.3",
     "@hashgraph/sdk": "^2.81.0",
     "@hashgraphonline/standards-sdk": "^0.1.184",
