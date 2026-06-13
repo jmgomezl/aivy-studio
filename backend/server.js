@@ -222,6 +222,7 @@ app.post('/api/auth/telegram', async (req, res) => {
         username: result.profile.username,
         photoUrl: result.profile.photoUrl,
         walletEvm: wallet.evmAddress,
+        hederaAccount: wallet.hederaAlias || (wallet.evmAddress ? `0.0.${wallet.evmAddress.slice(2).toLowerCase()}` : null),
       },
     });
   } catch (err) {

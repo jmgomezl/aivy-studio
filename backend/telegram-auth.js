@@ -87,6 +87,7 @@ export async function getOrCreateSellerWallet(profile) {
     telegramId: id,
     username: profile.username,
     evmAddress: wallet.evmAddress,
+    hederaAlias: wallet.hederaAlias, // same key, Hedera EVM-alias account
     encryptedKey: wallet.encryptedKey,
     createdAt: new Date().toISOString(),
   };

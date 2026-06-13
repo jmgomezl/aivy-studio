@@ -92,9 +92,18 @@ export default function TelegramLogin({ onChange, es = false, role = 'seller' })
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
               {role === 'buyer' ? (es ? 'Ofertando como' : 'Offering as') : (es ? 'Listando como' : 'Listing as')} @{auth.profile?.username || auth.profile?.telegramId}
             </div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 8.5, color: 'var(--muted)' }}>
-              {es ? 'identidad Telegram · billetera' : 'Telegram identity · wallet'} {(auth.profile?.walletEvm || '').slice(0, 10)}…
-            </div>
+            {(() => {
+              const evm = auth.profile?.walletEvm || '';
+              // One key → both chains: EVM address + its Hedera EVM-alias account.
+              const hedera = auth.profile?.hederaAccount || (evm ? `0.0.${evm.slice(2).toLowerCase()}` : '');
+              const short = (s, head, tail = 0) => (s ? `${s.slice(0, head)}…${tail ? s.slice(-tail) : ''}` : '—');
+              return (
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 8.5, color: 'var(--muted)', lineHeight: 1.6 }}>
+                  <div>EVM <span style={{ color: 'var(--text)' }}>{short(evm, 8, 4)}</span></div>
+                  <div>Hedera <span style={{ color: 'var(--accent)' }}>{short(hedera, 10)}</span></div>
+                </div>
+              );
+            })()}
           </div>
           <button className="btn-ghost" style={{ padding: '3px 9px', fontSize: 10 }} onClick={signOut}>
             {es ? 'Salir' : 'Sign out'}
