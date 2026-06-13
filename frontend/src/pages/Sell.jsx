@@ -14,25 +14,43 @@ export default function Sell() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [status, setStatus] = useState(null); // null | 'sending' | listing | 'error'
+  const [errMsg, setErrMsg] = useState(null);
   const [result, setResult] = useState(null);
 
   const es = i18n.language === 'es';
   const tg = window.Telegram?.WebApp;
 
+  // Resize/compress the photo client-side so the upload stays small (phone
+  // camera shots are several MB; the body limit and bandwidth don't like that).
   function onPhoto(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => setPhoto(reader.result);
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1280;
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        setPhoto(canvas.toDataURL('image/jpeg', 0.7)); // ~200-500KB
+      };
+      img.onerror = () => setPhoto(reader.result); // fallback to original
+      img.src = reader.result;
+    };
     reader.readAsDataURL(file);
   }
 
   async function submit() {
     const p = Number(price);
     if (!name.trim() || !p || p < 1) {
+      setErrMsg(es ? 'Falta nombre o precio (mín. 1 HBAR)' : 'Missing name or price (min 1 HBAR)');
       setStatus('error');
       return;
     }
+    setErrMsg(null);
     setStatus('sending');
     tg?.HapticFeedback?.impactOccurred?.('medium');
     try {
@@ -47,11 +65,16 @@ export default function Sell() {
           seller: tg?.initDataUnsafe?.user ? `tg:${tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.id}` : 'web-seller',
         }),
       });
-      if (!res.ok) throw new Error((await res.json()).error);
-      const { listing } = await res.json();
-      setResult(listing);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErrMsg(data.detail || data.error || (es ? `Error al listar (${res.status})` : `Listing failed (${res.status})`));
+        setStatus('error');
+        return;
+      }
+      setResult(data.listing);
       setStatus('listing');
-    } catch {
+    } catch (e) {
+      setErrMsg(es ? 'Error de red — reintenta' : 'Network error — try again');
       setStatus('error');
     }
   }
@@ -153,10 +176,8 @@ export default function Sell() {
             : 'Committed on-chain. Neither the buyer nor their agent sees it until close.'}
         </div>
 
-        {status === 'error' && (
-          <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10 }}>
-            {es ? 'Falta nombre o precio (mín. 1 HBAR)' : 'Missing name or price (min 1 HBAR)'}
-          </div>
+        {status === 'error' && errMsg && (
+          <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10 }}>{errMsg}</div>
         )}
 
         <button

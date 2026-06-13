@@ -143,6 +143,7 @@
 .studio-section-title { margin-top:18px; }
 .template-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:10px; cursor:pointer; transition:border-color .2s; }
 .template-card:hover, .template-card.active { border-color:var(--accent); }
+.template-card.starter:hover { border-color:var(--purple-light); }
 .template-card.ghost { opacity:.45; cursor:default; }
 .template-card.ghost:hover { border-color:var(--border); }
 .template-name { font-size:13px; font-weight:600; margin-bottom:4px; }

@@ -176,6 +176,149 @@ const nodeConfigFields = {
   ],
 };
 
+function studioNode(id, kind, icon, color, title, sub, detail, x, y, config = {}) {
+  return {
+    id,
+    type: 'kickoffNode',
+    position: { x, y },
+    data: { kind, icon, color, title, sub, detail, config },
+  };
+}
+
+const studioTemplateDefinitions = [
+  {
+    id: 'auction-house',
+    emoji: '🏷️',
+    titleKey: 'studioTemplates.auction.title',
+    descKey: 'studioTemplates.auction.desc',
+    nodes: [
+      studioNode('auction-bidder', 'agent', '🤖', '#A78BFA', 'Bidder Agent', 'strategy + max bid', 'evaluates lots and submits bids', 80, 120, {
+        model: 'gpt-4o',
+        personality: 'analytical',
+        tools: 'hcs10, escrow',
+      }),
+      studioNode('auction-channel', 'hcs10', '⬡', '#00FF87', 'Auction Channel', 'HCS-10 topic', 'bid events and winner audit trail', 340, 120, {
+        network: 'hedera-testnet',
+        memo: 'auction-house-bids',
+      }),
+      studioNode('auction-seller', 'agent', '🤖', '#A78BFA', 'Seller Agent', 'reserve logic', 'accepts winner above reserve', 600, 120, {
+        model: 'gpt-4o',
+        personality: 'neutral',
+      }),
+      studioNode('auction-approval', 'approval', '🔐', '#FF4444', 'Reserve Gate', 'human override', 'asks approval when below reserve', 600, 300, {
+        threshold: 'below reserve',
+        timeout: '15m',
+      }),
+      studioNode('auction-escrow', 'escrow', '💰', '#FFB800', 'Bid Escrow', 'HBAR lock', 'locks winning bid and releases settlement', 860, 120, {
+        token: 'HBAR',
+        releaseRule: 'on-accept',
+      }),
+    ],
+    edges: [
+      { id: 'auction-edge-bidder-channel', source: 'auction-bidder', target: 'auction-channel', label: 'bid' },
+      { id: 'auction-edge-channel-seller', source: 'auction-channel', target: 'auction-seller', label: 'event' },
+      { id: 'auction-edge-seller-approval', source: 'auction-seller', target: 'auction-approval', label: 'reserve check' },
+      { id: 'auction-edge-seller-escrow', source: 'auction-seller', target: 'auction-escrow', label: 'settle' },
+    ],
+  },
+  {
+    id: 'supply-negotiator',
+    emoji: '🛒',
+    titleKey: 'studioTemplates.supply.title',
+    descKey: 'studioTemplates.supply.desc',
+    nodes: [
+      studioNode('supply-buyer', 'agent', '🤖', '#A78BFA', 'Buyer Agent', 'procurement policy', 'requests quote and checks budget', 80, 130, {
+        model: 'gpt-4o',
+        tools: 'hcs10, contract',
+      }),
+      studioNode('supply-channel', 'hcs10', '⬡', '#00FF87', 'Quote Channel', 'supplier topic', 'quote and counter-offer audit trail', 330, 130, {
+        network: 'hedera-testnet',
+        memo: 'supplier-quotes',
+      }),
+      studioNode('supply-vendor', 'agent', '🤖', '#A78BFA', 'Vendor Agent', 'margin guardrail', 'responds with price and delivery terms', 580, 130, {
+        personality: 'charming',
+      }),
+      studioNode('supply-contract', 'contract', '🔒', '#FFB800', 'Purchase Contract', 'terms hash', 'commits accepted quantity and delivery SLA', 830, 130, {
+        chain: 'hedera-evm',
+        functionName: 'commitPurchaseOrder',
+      }),
+      studioNode('supply-payment', 'scheduled', '⏱', '#7C3AED', 'Scheduled Payment', 'net terms', 'queues payment after delivery approval', 830, 310, {
+        schedule: 'net-30',
+        executionWindow: '24h',
+      }),
+    ],
+    edges: [
+      { id: 'supply-edge-buyer-channel', source: 'supply-buyer', target: 'supply-channel', label: 'rfq' },
+      { id: 'supply-edge-channel-vendor', source: 'supply-channel', target: 'supply-vendor', label: 'quote' },
+      { id: 'supply-edge-vendor-contract', source: 'supply-vendor', target: 'supply-contract', label: 'terms' },
+      { id: 'supply-edge-contract-payment', source: 'supply-contract', target: 'supply-payment', label: 'schedule' },
+    ],
+  },
+  {
+    id: 'dao-approval',
+    emoji: '🗳️',
+    titleKey: 'studioTemplates.dao.title',
+    descKey: 'studioTemplates.dao.desc',
+    nodes: [
+      studioNode('dao-human', 'human', '👤', '#4488FF', 'Proposal Intake', 'member request', 'captures proposal and requested spend', 80, 120, {
+        channel: 'web',
+        requiredInput: 'proposal + budget',
+      }),
+      studioNode('dao-agent', 'agent', '🤖', '#A78BFA', 'Summary Agent', 'risk brief', 'summarizes proposal and flags risk', 330, 120, {
+        model: 'gpt-4o',
+        personality: 'analytical',
+      }),
+      studioNode('dao-audit', 'hcs10', '⬡', '#00FF87', 'DAO Audit Topic', 'public trail', 'records summary and decision events', 580, 120, {
+        network: 'hedera-testnet',
+        memo: 'dao-approvals',
+      }),
+      studioNode('dao-gate', 'approval', '🔐', '#FF4444', 'Multisig Gate', 'member approval', 'waits for threshold signature', 830, 120, {
+        wallet: 'Safe',
+        threshold: '3 of 5',
+      }),
+      studioNode('dao-tx', 'scheduled', '⏱', '#7C3AED', 'Treasury Tx', 'queued transfer', 'executes approved spend', 830, 300, {
+        schedule: 'after quorum',
+        memo: 'dao treasury release',
+      }),
+    ],
+    edges: [
+      { id: 'dao-edge-human-agent', source: 'dao-human', target: 'dao-agent', label: 'proposal' },
+      { id: 'dao-edge-agent-audit', source: 'dao-agent', target: 'dao-audit', label: 'summary' },
+      { id: 'dao-edge-audit-gate', source: 'dao-audit', target: 'dao-gate', label: 'vote event' },
+      { id: 'dao-edge-gate-tx', source: 'dao-gate', target: 'dao-tx', label: 'approve' },
+    ],
+  },
+  {
+    id: 'escrow-release',
+    emoji: '🔓',
+    titleKey: 'studioTemplates.escrowRelease.title',
+    descKey: 'studioTemplates.escrowRelease.desc',
+    nodes: [
+      studioNode('release-human', 'human', '👤', '#4488FF', 'Release Trigger', 'buyer confirmation', 'captures delivery confirmation', 80, 120, {
+        channel: 'telegram',
+        requiredInput: 'delivery accepted',
+      }),
+      studioNode('release-contract', 'contract', '🔒', '#FFB800', 'Condition Check', 'settlement rule', 'verifies delivery, deadline, and dispute flags', 330, 120, {
+        chain: 'hedera-evm',
+        functionName: 'canRelease',
+      }),
+      studioNode('release-escrow', 'escrow', '💰', '#FFB800', 'Escrow Release', 'fund movement', 'releases funds or routes refund', 580, 120, {
+        token: 'HBAR',
+        releaseRule: 'manual-approval',
+      }),
+      studioNode('release-voice', 'voice', '🗣️', '#00C8FF', 'Release Notice', 'voice/webhook', 'notifies both parties after settlement', 830, 120, {
+        delivery: 'webhook',
+        language: 'en',
+      }),
+    ],
+    edges: [
+      { id: 'release-edge-human-contract', source: 'release-human', target: 'release-contract', label: 'confirm' },
+      { id: 'release-edge-contract-escrow', source: 'release-contract', target: 'release-escrow', label: 'release' },
+      { id: 'release-edge-escrow-voice', source: 'release-escrow', target: 'release-voice', label: 'notify' },
+    ],
+  },
+];
+
 function normalizeImportedWorkflow(value, fallbackName) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('invalid');
@@ -312,6 +455,15 @@ export default function Studio() {
       { kind: 'scheduled', icon: '⏱', color: '#7C3AED', title: t('palette.scheduled.title'), sub: t('palette.scheduled.sub'), detail: t('palette.scheduled.detail') },
       { kind: 'uniswap', icon: '🦄', color: '#FF007A', title: t('palette.uniswap.title'), sub: t('palette.uniswap.sub'), detail: t('palette.uniswap.detail') },
     ],
+    [t]
+  );
+  const studioTemplates = useMemo(
+    () =>
+      studioTemplateDefinitions.map((starter) => ({
+        ...starter,
+        title: t(starter.titleKey),
+        description: t(starter.descKey),
+      })),
     [t]
   );
 
@@ -697,6 +849,26 @@ export default function Studio() {
     setConnectionNotice('');
   }
 
+  function loadStudioTemplate(starter) {
+    const starterNodes = cloneNodes(starter.nodes);
+    const starterEdges = styleEdges(starter.edges);
+    setActive(false);
+    setSelectedNodeId(null);
+    setSelectedEdgeId(null);
+    setNodeClipboard(null);
+    setCurrentWorkflowId(null);
+    clearDraft();
+    writeLastOpenedWorkflowId('draft');
+    setWorkflowName(starter.title);
+    setNodes(starterNodes);
+    setEdges(starterEdges);
+    setLastCleanSnapshot('');
+    setSaveNotice(false);
+    setDraftNotice(false);
+    setImportError('');
+    setConnectionNotice('');
+  }
+
   function newWorkflow() {
     const name = t('untitledWorkflow');
     setActive(false);
@@ -982,14 +1154,17 @@ export default function Studio() {
             <div className="template-desc">{template.description}</div>
             <div className="template-meta">8 nodes · 9 edges · hedera-testnet</div>
           </div>
-          <div className="template-card ghost">
-            <div className="template-name">🏷️ Auction House</div>
-            <div className="template-desc">{t('comingSoon')}</div>
-          </div>
-          <div className="template-card ghost">
-            <div className="template-name">🛒 Supply Negotiator</div>
-            <div className="template-desc">{t('comingSoon')}</div>
-          </div>
+          {studioTemplates.map((starter) => (
+            <div className="template-card starter" key={starter.id} onClick={() => loadStudioTemplate(starter)}>
+              <div className="template-name">
+                {starter.emoji} {starter.title}
+              </div>
+              <div className="template-desc">{starter.description}</div>
+              <div className="template-meta">
+                {starter.nodes.length} {t('nodesLabel')} · {starter.edges.length} {t('edgesLabel')} · {t('localStarter')}
+              </div>
+            </div>
+          ))}
           <div className="sidebar-title studio-section-title">{t('myWorkflows')}</div>
           {savedWorkflows.length === 0 ? (
             <div className="studio-empty">{t('noWorkflows')}</div>

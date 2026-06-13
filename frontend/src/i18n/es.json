@@ -52,6 +52,7 @@
   "activeSimulation": "Simulación local activa",
   "kickoffLiveTemplate": "Plantilla Kickoff live",
   "localWorkflow": "Workflow local",
+  "localStarter": "starter local",
   "comingSoon": "Próximamente",
   "myWorkflows": "Mis workflows",
   "noWorkflows": "Aún no hay workflows guardados",
@@ -155,6 +156,24 @@
       "scheduled": "{{node}} puso transacción en cola",
       "uniswap": "{{node}} preparó swap",
       "custom": "{{node}} completó paso"
+    }
+  },
+  "studioTemplates": {
+    "auction": {
+      "title": "Auction House",
+      "desc": "Agentes de comprador y vendedor coordinan pujas, reserva, escrow y aprobación de fallback."
+    },
+    "supply": {
+      "title": "Supply Negotiator",
+      "desc": "Agente de compras solicita cotizaciones, negocia términos, compromete reglas y programa pago."
+    },
+    "dao": {
+      "title": "DAO Approval",
+      "desc": "Entrada de propuesta, resumen con IA, auditoría HCS, aprobación multisig y ejecución de tesorería."
+    },
+    "escrowRelease": {
+      "title": "Escrow Release",
+      "desc": "Confirmación del comprador activa checks de contrato, liberación de escrow y notificación."
     }
   },
   "palette": {

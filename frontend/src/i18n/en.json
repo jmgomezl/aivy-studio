@@ -52,6 +52,7 @@
   "activeSimulation": "Local simulation active",
   "kickoffLiveTemplate": "Kickoff live template",
   "localWorkflow": "Local workflow",
+  "localStarter": "local starter",
   "comingSoon": "Coming soon",
   "myWorkflows": "My workflows",
   "noWorkflows": "No saved workflows yet",
@@ -155,6 +156,24 @@
       "scheduled": "{{node}} queued transaction",
       "uniswap": "{{node}} prepared swap",
       "custom": "{{node}} completed step"
+    }
+  },
+  "studioTemplates": {
+    "auction": {
+      "title": "Auction House",
+      "desc": "Bidder and seller agents coordinate bids, reserve checks, escrow, and approval fallback."
+    },
+    "supply": {
+      "title": "Supply Negotiator",
+      "desc": "Procurement agent requests quotes, negotiates terms, commits purchase logic, and schedules payment."
+    },
+    "dao": {
+      "title": "DAO Approval",
+      "desc": "Proposal intake, AI summary, HCS audit trail, multisig approval, and queued treasury execution."
+    },
+    "escrowRelease": {
+      "title": "Escrow Release",
+      "desc": "Buyer confirmation triggers contract checks, escrow release, and notification after settlement."
     }
   },
   "palette": {
