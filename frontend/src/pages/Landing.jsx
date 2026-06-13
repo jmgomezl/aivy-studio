@@ -1,7 +1,7 @@
 // kickoff.bot landing — the marketplace face ("eBay of agents"): LIGHT theme.
 // The negotiation surfaces it links to (Offer/Arena) are dark — intentional
 // light->dark transition when you go on-chain.
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toggleLang } from '../i18n';
@@ -10,10 +10,38 @@ import Marketplace from '../components/Marketplace.jsx';
 export default function Landing() {
   const { t, i18n } = useTranslation();
 
+  const facts = [
+    'LIVE ON HEDERA TESTNET · HCS-10 TOPIC 0.0.9217269',
+    'SELLER AGENT 0.0.9217340 · MIN PRICE COMMITTED ON-CHAIN',
+    t('tagline').toUpperCase(),
+    'LEDGER DELEGATION · HTS ESCROW · ELEVENLABS VOICE',
+  ];
+  const [ticker, setTicker] = useState(facts);
+
   useEffect(() => {
     document.documentElement.dataset.theme = 'light';
     return () => delete document.documentElement.dataset.theme;
   }, []);
+
+  // Live ticker: real listing activity (sold / live / listed) + on-chain facts.
+  useEffect(() => {
+    const load = () =>
+      fetch('/api/listings')
+        .then((r) => r.json())
+        .then((d) => {
+          const acts = (d.listings || []).map((l) => {
+            const NAME = (l.name || '').toUpperCase();
+            if (l.status === 'sold') return `✓ SOLD · ${NAME} → ${l.soldPrice} HBAR`;
+            if (d.active && l.id === d.active.id) return `● LIVE · ${NAME} · RESERVE COMMITTED ON-CHAIN`;
+            return `LISTED · ${NAME}`;
+          });
+          setTicker([...acts, ...facts]);
+        })
+        .catch(() => setTicker(facts));
+    load();
+    const iv = setInterval(load, 15000);
+    return () => clearInterval(iv);
+  }, [i18n.language]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div>
@@ -21,10 +49,9 @@ export default function Landing() {
         <div className="ticker-inner">
           {Array.from({ length: 2 }).map((_, k) => (
             <span key={k} style={{ display: 'inline-flex', gap: 48 }}>
-              <span className="ticker-item"><span className="ticker-dot" />LIVE ON HEDERA TESTNET · HCS-10 TOPIC 0.0.9217269</span>
-              <span className="ticker-item"><span className="ticker-dot" />SELLER AGENT 0.0.9217340 · MIN PRICE COMMITTED ON-CHAIN</span>
-              <span className="ticker-item"><span className="ticker-dot" />{t('tagline').toUpperCase()}</span>
-              <span className="ticker-item"><span className="ticker-dot" />LEDGER DELEGATION · HTS ESCROW · ELEVENLABS VOICE</span>
+              {ticker.map((it, i) => (
+                <span className="ticker-item" key={i}><span className="ticker-dot" />{it}</span>
+              ))}
             </span>
           ))}
         </div>
