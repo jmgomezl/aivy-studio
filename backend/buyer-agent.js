@@ -2,28 +2,40 @@
 // configurable strategy, no human in the loop. Each round publishes a real
 // offer to the HCS-10 topic and waits for the seller's on-chain verdict.
 import { TopicMessageSubmitTransaction } from '@hashgraph/sdk';
+import { existsSync, readFileSync } from 'node:fs';
 
-// Strategy playbooks: escalating fractions of maxBudget + arguments in character.
+// The product the buyer agent is negotiating for (the active listing).
+function activeProduct() {
+  try {
+    if (existsSync('data/active-listing.json')) {
+      const a = JSON.parse(readFileSync('data/active-listing.json', 'utf8'));
+      if (a?.name) return a.name;
+    }
+  } catch {}
+  return 'this item';
+}
+
+// Strategy playbooks: escalating fractions of maxBudget + product-aware args.
 const STRATEGIES = {
   aggressive: [
-    { f: 0.6, arg: 'I know the market. This price is competitive for what you are offering. Take it.' },
-    { f: 0.78, arg: 'I have analyzed comparable specialty lots on Hedera. My offer reflects fair market value for single-origin Huila.' },
-    { f: 0.95, arg: 'Final offer. My budget ceiling is firm. This is the best price you will get today.' },
+    { f: 0.6, arg: (p) => `I know the market for ${p}. This price is competitive — take it.` },
+    { f: 0.78, arg: (p) => `I've compared similar listings on-chain. My offer is fair market value for ${p}.` },
+    { f: 0.95, arg: (p) => `Final offer. My budget ceiling is firm — best price you'll get for ${p} today.` },
   ],
   charming: [
-    { f: 0.55, arg: 'I have been searching for a coffee like this for months — washed Huila is exactly what I have been chasing.' },
-    { f: 0.75, arg: 'I have visited farms in Huila and I brew V60 every morning. The jasmine notes of this lot deserve a careful hand, and mine are.' },
-    { f: 0.92, arg: 'You grow something extraordinary. I want to share it, not just consume it. Let me honor it at this price.' },
+    { f: 0.55, arg: (p) => `I've been looking for ${p} like this for ages — exactly what I wanted.` },
+    { f: 0.75, arg: (p) => `I genuinely appreciate ${p} of this quality. It would be in good hands with me.` },
+    { f: 0.92, arg: (p) => `This ${p} deserves someone who'll truly value it. Let me honor it at this price.` },
   ],
   analytical: [
-    { f: 0.58, arg: 'Market data: specialty washed Huila trades in a defined band. My offer sits within fair range.' },
-    { f: 0.76, arg: 'Adjusted for origin premium and altitude, this offer carries a 15% premium over baseline. Analytically sound.' },
-    { f: 0.95, arg: 'Final computation: at this price the value-to-quality ratio is optimal for both parties. Acceptance is rational.' },
+    { f: 0.58, arg: (p) => `Based on comparable ${p} listings, my offer sits within fair range.` },
+    { f: 0.76, arg: (p) => `Adjusted for quality and condition, this offer carries a premium over baseline for ${p}.` },
+    { f: 0.95, arg: (p) => `At this price the value-to-quality ratio for ${p} is optimal for both parties. Acceptance is rational.` },
   ],
   emotional: [
-    { f: 0.5, arg: 'My grandmother grew coffee in the mountains. This lot smells like her kitchen. I need this.' },
-    { f: 0.72, arg: 'I am not buying coffee. I am buying a memory of a place I love. The price is secondary to what it means.' },
-    { f: 0.95, arg: 'This is personal. Some things are worth more than the number. I will pay what it takes within my means.' },
+    { f: 0.5, arg: (p) => `This ${p} means more to me than I can explain. I really need it.` },
+    { f: 0.72, arg: (p) => `I'm not just buying ${p} — I'm buying what it represents to me. Price is secondary.` },
+    { f: 0.95, arg: (p) => `This is personal. Some things are worth more than the number — I'll pay what I can for this ${p}.` },
   ],
 };
 
@@ -82,11 +94,12 @@ export function deployBuyerAgent({ client, topicId, state, negotiationId, strate
 
   async function run() {
     const steps = STRATEGIES[strategy];
+    const product = activeProduct();
     for (let i = 0; i < steps.length; i++) {
       session.round = i + 1;
       const price = Math.max(1, Math.round(maxBudget * steps[i].f));
       console.log(`[buyer-agent:${strategy}] round ${session.round}: ${price} HBAR`);
-      const seq = await publishOffer(price, steps[i].arg);
+      const seq = await publishOffer(price, steps[i].arg(product));
       const verdict = await waitVerdictAfter(seq);
       if (!verdict) {
         session.status = 'timeout';

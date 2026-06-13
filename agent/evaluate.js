@@ -82,17 +82,18 @@ export function deterministicEvaluate(offer, ctx, aboveMinimum) {
   if (arg.length > 120) p += 5;
   p = Math.max(2, Math.min(98, p));
 
+  const product = ctx.productName || 'this item';
   if (!aboveMinimum) {
     return {
       decision: 'reject',
       counterPrice: null,
       sellProbability: p,
       reasoning: `Offer of ${offer.price} ${ctx.currency} is below my committed minimum. ${
-        passion ? 'The argument shows real coffee knowledge — I want to keep talking.' : ''
+        passion ? 'The argument shows genuine appreciation — I want to keep talking.' : ''
       }${authority ? ' Authority arguments do not move me.' : ''}`,
       spokenVerdict: passion
-        ? 'I can hear that you truly love coffee — but my hands are tied below my committed price. Come back with a little more and this cup is yours.'
-        : 'I respect the offer, but it does not honor what this coffee is worth. Raise it, and bring me a reason that comes from the heart.',
+        ? `I can hear that you truly value ${product} — but my hands are tied below my committed price. Come back with a little more and it is yours.`
+        : `I respect the offer, but it does not honor what ${product} is worth. Raise it, and bring me a reason that comes from the heart.`,
     };
   }
   const accept = p >= 60;
@@ -101,10 +102,10 @@ export function deterministicEvaluate(offer, ctx, aboveMinimum) {
     counterPrice: accept ? null : Math.ceil(offer.price * 1.15),
     sellProbability: p,
     reasoning: `Offer clears the committed minimum (margin ${(margin * 100).toFixed(0)}%). ${
-      passion ? 'Genuine specialty-coffee appreciation detected.' : 'Argument is generic.'
+      passion ? 'Genuine appreciation detected.' : 'Argument is generic.'
     }${authority ? ' Authority argument penalized.' : ''}`,
     spokenVerdict: accept
-      ? 'You spoke to the soul of this coffee, and the price honors it. Deal — the coffee is yours, sealed on Hedera.'
-      : 'You are close — the passion is there, but this coffee deserves a touch more. Meet my counter and we shake hands on-chain.',
+      ? `You spoke to the heart of ${product}, and the price honors it. Deal — it is yours, sealed on Hedera.`
+      : `You are close — the conviction is there, but ${product} deserves a touch more. Meet my counter and we shake hands on-chain.`,
   };
 }
