@@ -2,7 +2,7 @@
 // n8n-style: template library on the left, draggable node graph on the right.
 // "Activate" connects to the live backend: node status dots light up as real
 // HCS-10 events flow (the Kickoff flow running for real, not a simulation).
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -71,6 +71,86 @@ function cleanEdges(edges) {
   }));
 }
 
+function workflowSnapshot(name, nodes, edges) {
+  return JSON.stringify({
+    name,
+    nodes: cleanNodes(nodes),
+    edges: cleanEdges(edges),
+  });
+}
+
+function defaultEdgeLabel(sourceNode, targetNode) {
+  const sourceKind = sourceNode?.data?.kind;
+  const targetKind = targetNode?.data?.kind;
+
+  if (sourceKind === 'agent' && targetKind === 'hcs10') return 'message';
+  if (sourceKind === 'hcs10' && targetKind === 'agent') return 'event';
+  if (sourceKind === 'agent' && targetKind === 'escrow') return 'settle';
+  if (sourceKind === 'approval' && targetKind === 'scheduled') return 'approve';
+  if (sourceKind === 'human' && targetKind === 'agent') return 'prompt';
+  if (sourceKind === 'scheduled' && targetKind === 'contract') return 'execute';
+  if (sourceKind === 'contract' && targetKind === 'escrow') return 'release';
+  if (targetKind === 'voice') return 'notify';
+
+  return 'handoff';
+}
+
+function normalizeImportedWorkflow(value, fallbackName) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('invalid');
+  }
+  if (!Array.isArray(value.nodes) || !Array.isArray(value.edges)) {
+    throw new Error('invalid');
+  }
+
+  const nodeIds = new Set();
+  const nodes = value.nodes.map((node, index) => {
+    const id = typeof node?.id === 'string' && node.id.trim() ? node.id.trim() : `node-${index + 1}`;
+    if (nodeIds.has(id)) throw new Error('duplicate-node');
+    nodeIds.add(id);
+
+    const position = node?.position || {};
+    const data = node?.data || {};
+    return {
+      id,
+      type: 'kickoffNode',
+      position: {
+        x: Number.isFinite(Number(position.x)) ? Number(position.x) : index * 220,
+        y: Number.isFinite(Number(position.y)) ? Number(position.y) : 120,
+      },
+      data: {
+        icon: typeof data.icon === 'string' && data.icon ? data.icon : '🤖',
+        color: typeof data.color === 'string' && data.color ? data.color : '#A78BFA',
+        title: typeof data.title === 'string' && data.title ? data.title : `Node ${index + 1}`,
+        sub: typeof data.sub === 'string' ? data.sub : '',
+        detail: typeof data.detail === 'string' ? data.detail : '',
+        kind: typeof data.kind === 'string' && data.kind ? data.kind : 'custom',
+      },
+    };
+  });
+
+  const edges = value.edges.map((edge, index) => {
+    if (!nodeIds.has(edge?.source) || !nodeIds.has(edge?.target)) {
+      throw new Error('invalid-edge');
+    }
+
+    return {
+      id: typeof edge.id === 'string' && edge.id.trim() ? edge.id.trim() : `edge-${edge.source}-${edge.target}-${index + 1}`,
+      source: edge.source,
+      target: edge.target,
+      ...(typeof edge.sourceHandle === 'string' && edge.sourceHandle ? { sourceHandle: edge.sourceHandle } : {}),
+      ...(typeof edge.targetHandle === 'string' && edge.targetHandle ? { targetHandle: edge.targetHandle } : {}),
+      ...(typeof edge.label === 'string' && edge.label ? { label: edge.label } : {}),
+    };
+  });
+
+  return {
+    name: typeof value.name === 'string' && value.name.trim() ? value.name.trim() : fallbackName,
+    nodes,
+    edges,
+  };
+}
+
 function buildSimulationSteps(nodes, edges) {
   if (!nodes.length) return [];
 
@@ -121,13 +201,17 @@ function buildSimulationSteps(nodes, edges) {
 export default function Studio() {
   const { t, i18n } = useTranslation();
   const { feed, connected } = useNegotiationFeed();
+  const importInputRef = useRef(null);
   const [active, setActive] = useState(false);
   const [simulationStep, setSimulationStep] = useState(0);
+  const [simulationAuto, setSimulationAuto] = useState(true);
+  const [simulationDelay, setSimulationDelay] = useState(850);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [savedWorkflows, setSavedWorkflows] = useState(() => readWorkflows());
   const [currentWorkflowId, setCurrentWorkflowId] = useState('kickoff');
   const [workflowName, setWorkflowName] = useState(template.name);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const paletteNodes = useMemo(
     () => [
       { kind: 'agent', icon: '🤖', color: '#A78BFA', title: t('palette.agent.title'), sub: t('palette.agent.sub'), detail: t('palette.agent.detail') },
@@ -145,16 +229,23 @@ export default function Studio() {
 
   const initialNodes = useMemo(() => cloneNodes(template.nodes), []);
   const initialEdges = useMemo(() => styleEdges(template.edges), []);
+  const initialSnapshot = useMemo(() => workflowSnapshot(template.name, initialNodes, initialEdges), [initialEdges, initialNodes]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [lastCleanSnapshot, setLastCleanSnapshot] = useState(initialSnapshot);
+  const [saveNotice, setSaveNotice] = useState(false);
+  const [importError, setImportError] = useState('');
   const onConnect = useCallback(
-    (connection) =>
+    (connection) => {
+      const sourceNode = nodes.find((node) => node.id === connection.source);
+      const targetNode = nodes.find((node) => node.id === connection.target);
       setEdges((eds) =>
         addEdge(
           {
             ...connection,
             id: `edge-${connection.source}-${connection.target}-${Date.now().toString(36)}`,
+            label: defaultEdgeLabel(sourceNode, targetNode),
             animated: active,
             style: edgeStyle,
             labelStyle: edgeLabelStyle,
@@ -162,12 +253,16 @@ export default function Studio() {
           },
           eds
         )
-      ),
-    [active, setEdges]
+      );
+    },
+    [active, nodes, setEdges]
   );
 
   const selectedNode = useMemo(() => nodes.find((node) => node.id === selectedNodeId), [nodes, selectedNodeId]);
+  const selectedEdge = useMemo(() => edges.find((edge) => edge.id === selectedEdgeId), [edges, selectedEdgeId]);
   const isKickoffWorkflow = currentWorkflowId === 'kickoff';
+  const currentSnapshot = useMemo(() => workflowSnapshot(workflowName, nodes, edges), [edges, nodes, workflowName]);
+  const hasUnsavedChanges = currentSnapshot !== lastCleanSnapshot;
   const simulationSteps = useMemo(() => buildSimulationSteps(nodes, edges), [nodes, edges]);
   const simulationHot = useMemo(() => {
     const visibleSteps = simulationSteps.slice(0, simulationStep);
@@ -184,18 +279,32 @@ export default function Studio() {
   }, [nodes, selectedNodeId]);
 
   useEffect(() => {
+    if (selectedEdgeId && !edges.some((edge) => edge.id === selectedEdgeId)) {
+      setSelectedEdgeId(null);
+    }
+  }, [edges, selectedEdgeId]);
+
+  useEffect(() => {
+    if (!saveNotice) return undefined;
+    const timer = window.setTimeout(() => setSaveNotice(false), 1800);
+    return () => window.clearTimeout(timer);
+  }, [saveNotice]);
+
+  useEffect(() => {
     if (!active || isKickoffWorkflow || !simulationSteps.length) {
       setSimulationStep(0);
       return undefined;
     }
 
-    setSimulationStep(1);
+    if (!simulationAuto) return undefined;
+    if (simulationStep === 0) setSimulationStep(1);
+
     const timer = window.setInterval(() => {
       setSimulationStep((step) => (step >= simulationSteps.length ? 1 : step + 1));
-    }, 850);
+    }, simulationDelay);
 
     return () => window.clearInterval(timer);
-  }, [active, isKickoffWorkflow, simulationSteps.length]);
+  }, [active, isKickoffWorkflow, simulationAuto, simulationDelay, simulationStep, simulationSteps.length]);
 
   // When the flow is active, light nodes up from real events.
   const lastEvent = feed[feed.length - 1];
@@ -229,6 +338,8 @@ export default function Studio() {
 
   const activationLabel = active ? `■ ${t('stop')}` : `▶ ${isKickoffWorkflow ? t('listenLive') : t('simulate')}`;
   const activeStatus = isKickoffWorkflow ? t('activeLiveFlow') : t('activeSimulation');
+  const saveStateLabel = hasUnsavedChanges ? t('unsavedChanges') : saveNotice ? t('savedJustNow') : t('saved');
+  const modeLabel = isKickoffWorkflow ? t('kickoffLiveTemplate') : t('localWorkflow');
 
   function activate() {
     const nextActive = !active;
@@ -236,52 +347,93 @@ export default function Studio() {
     if (isKickoffWorkflow) {
       setEdges((eds) => eds.map((e) => ({ ...e, animated: nextActive })));
     } else {
-      setSimulationStep(0);
+      setSimulationStep(nextActive ? 1 : 0);
+      setEdges((eds) => eds.map((e) => ({ ...e, animated: false, style: edgeStyle })));
+    }
+  }
+
+  function stepSimulation() {
+    if (!simulationSteps.length) return;
+    setActive(true);
+    setSimulationAuto(false);
+    setSimulationStep((step) => (step >= simulationSteps.length ? 1 : step + 1));
+  }
+
+  function resetSimulation() {
+    setActive(false);
+    setSimulationAuto(false);
+    setSimulationStep(0);
+    if (!isKickoffWorkflow) {
       setEdges((eds) => eds.map((e) => ({ ...e, animated: false, style: edgeStyle })));
     }
   }
 
   function loadKickoffTemplate() {
+    const templateNodes = cloneNodes(template.nodes);
+    const templateEdges = styleEdges(template.edges);
     setActive(false);
     setSelectedNodeId(null);
+    setSelectedEdgeId(null);
     setCurrentWorkflowId('kickoff');
     setWorkflowName(template.name);
-    setNodes(cloneNodes(template.nodes));
-    setEdges(styleEdges(template.edges));
+    setNodes(templateNodes);
+    setEdges(templateEdges);
+    setLastCleanSnapshot(workflowSnapshot(template.name, templateNodes, templateEdges));
+    setSaveNotice(false);
+    setImportError('');
   }
 
   function loadSavedWorkflow(workflow) {
+    const workflowNodes = cloneNodes(workflow.nodes || []);
+    const workflowEdges = styleEdges(workflow.edges || []);
+    const name = workflow.name || t('untitledWorkflow');
     setActive(false);
     setSelectedNodeId(null);
+    setSelectedEdgeId(null);
     setCurrentWorkflowId(workflow.id);
-    setWorkflowName(workflow.name || t('untitledWorkflow'));
-    setNodes(cloneNodes(workflow.nodes || []));
-    setEdges(styleEdges(workflow.edges || []));
+    setWorkflowName(name);
+    setNodes(workflowNodes);
+    setEdges(workflowEdges);
+    setLastCleanSnapshot(workflowSnapshot(name, workflowNodes, workflowEdges));
+    setSaveNotice(false);
+    setImportError('');
   }
 
   function newWorkflow() {
+    const name = t('untitledWorkflow');
     setActive(false);
     setSelectedNodeId(null);
+    setSelectedEdgeId(null);
     setCurrentWorkflowId(null);
-    setWorkflowName(t('untitledWorkflow'));
+    setWorkflowName(name);
     setNodes([]);
     setEdges([]);
+    setLastCleanSnapshot(workflowSnapshot(name, [], []));
+    setSaveNotice(false);
+    setImportError('');
   }
 
   function persistWorkflow() {
+    const name = workflowName.trim() || t('untitledWorkflow');
+    const savedNodes = cleanNodes(nodes);
+    const savedEdges = cleanEdges(edges);
     const saved = saveWorkflow({
       id: currentWorkflowId === 'kickoff' ? undefined : currentWorkflowId,
-      name: workflowName.trim() || t('untitledWorkflow'),
-      nodes: cleanNodes(nodes),
-      edges: cleanEdges(edges),
+      name,
+      nodes: savedNodes,
+      edges: savedEdges,
     });
     setCurrentWorkflowId(saved.id);
     setWorkflowName(saved.name);
     setSavedWorkflows(readWorkflows());
+    setLastCleanSnapshot(workflowSnapshot(saved.name, saved.nodes, saved.edges));
+    setSaveNotice(true);
+    setImportError('');
   }
 
   function removeWorkflow(event, workflowId) {
     event.stopPropagation();
+    if (!window.confirm(t('deleteWorkflowConfirm'))) return;
     const workflows = deleteWorkflow(workflowId);
     setSavedWorkflows(workflows);
     if (currentWorkflowId === workflowId) newWorkflow();
@@ -302,6 +454,32 @@ export default function Studio() {
     link.download = `${workflow.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'workflow'}.json`;
     link.click();
     URL.revokeObjectURL(link.href);
+  }
+
+  async function importJson(event) {
+    const [file] = event.target.files || [];
+    event.target.value = '';
+    if (!file) return;
+
+    try {
+      const parsed = JSON.parse(await file.text());
+      const imported = normalizeImportedWorkflow(parsed, t('untitledWorkflow'));
+      const importedNodes = cloneNodes(imported.nodes);
+      const importedEdges = styleEdges(imported.edges);
+
+      setActive(false);
+      setSelectedNodeId(null);
+      setSelectedEdgeId(null);
+      setCurrentWorkflowId(null);
+      setWorkflowName(imported.name);
+      setNodes(importedNodes);
+      setEdges(importedEdges);
+      setLastCleanSnapshot('');
+      setSaveNotice(false);
+      setImportError('');
+    } catch {
+      setImportError(t('importJsonError'));
+    }
   }
 
   function onDragStart(event, paletteNode) {
@@ -335,12 +513,17 @@ export default function Studio() {
     setCurrentWorkflowId(currentWorkflowId === 'kickoff' ? null : currentWorkflowId);
     setNodes((nds) => nds.concat(node));
     setSelectedNodeId(id);
+    setSelectedEdgeId(null);
   }
 
   function updateSelectedNode(field, value) {
     setNodes((nds) =>
       nds.map((node) => (node.id === selectedNodeId ? { ...node, data: { ...node.data, [field]: value } } : node))
     );
+  }
+
+  function updateSelectedEdge(field, value) {
+    setEdges((eds) => eds.map((edge) => (edge.id === selectedEdgeId ? { ...edge, [field]: value } : edge)));
   }
 
   return (
@@ -411,6 +594,9 @@ export default function Studio() {
               onChange={(event) => setWorkflowName(event.target.value)}
               aria-label={t('workflowName')}
             />
+            <div className={`save-state ${hasUnsavedChanges ? 'dirty' : 'clean'}`}>
+              <span className="save-state-dot" /> {saveStateLabel}
+            </div>
             <div className="studio-action-grid">
               <button className="btn-ghost" onClick={newWorkflow}>
                 {t('newWorkflow')}
@@ -419,9 +605,16 @@ export default function Studio() {
                 {t('save')}
               </button>
             </div>
-            <button className="btn-ghost export-btn" onClick={exportJson}>
-              {t('exportJson')}
-            </button>
+            <div className="studio-secondary-grid">
+              <button className="btn-ghost export-btn" onClick={exportJson}>
+                {t('exportJson')}
+              </button>
+              <button className="btn-ghost export-btn" onClick={() => importInputRef.current?.click()}>
+                {t('importJson')}
+              </button>
+            </div>
+            <input ref={importInputRef} className="workflow-file-input" type="file" accept="application/json,.json" onChange={importJson} />
+            {importError && <div className="import-error">{importError}</div>}
           </div>
           <div className="sidebar-title studio-section-title">{t('nodePalette')}</div>
           <div className="node-palette">
@@ -447,8 +640,39 @@ export default function Studio() {
               <div className="logo-dot" /> {activeStatus}
             </div>
           )}
+          {!isKickoffWorkflow && (
+            <div className="simulation-controls">
+              <div className="sidebar-title">{t('simulationControls')}</div>
+              <div className="simulation-control-row">
+                <button className="btn-ghost" onClick={resetSimulation}>
+                  {t('reset')}
+                </button>
+                <button className="btn-primary" onClick={stepSimulation}>
+                  {t('step')}
+                </button>
+              </div>
+              <label className="simulation-toggle">
+                <input type="checkbox" checked={simulationAuto} onChange={(event) => setSimulationAuto(event.target.checked)} />
+                <span>{t('autoRun')}</span>
+              </label>
+              <label className="simulation-speed">
+                <span>{t('speed')}</span>
+                <input
+                  type="range"
+                  min="350"
+                  max="1400"
+                  step="50"
+                  value={1750 - simulationDelay}
+                  onChange={(event) => setSimulationDelay(1750 - Number(event.target.value))}
+                />
+              </label>
+            </div>
+          )}
         </div>
         <div className="studio-canvas" onDrop={onDrop} onDragOver={onDragOver}>
+          <div className={`workflow-mode-badge ${isKickoffWorkflow ? 'live' : 'local'}`}>
+            <span className="save-state-dot" /> {modeLabel}
+          </div>
           <ReactFlow
             nodes={liveNodes}
             edges={displayEdges}
@@ -456,8 +680,18 @@ export default function Studio() {
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onInit={setReactFlowInstance}
-            onNodeClick={(_, node) => setSelectedNodeId(node.id)}
-            onPaneClick={() => setSelectedNodeId(null)}
+            onNodeClick={(_, node) => {
+              setSelectedNodeId(node.id);
+              setSelectedEdgeId(null);
+            }}
+            onEdgeClick={(_, edge) => {
+              setSelectedEdgeId(edge.id);
+              setSelectedNodeId(null);
+            }}
+            onPaneClick={() => {
+              setSelectedNodeId(null);
+              setSelectedEdgeId(null);
+            }}
             nodeTypes={nodeTypes}
             fitView
             colorMode="dark"
@@ -481,6 +715,23 @@ export default function Studio() {
               <label className="inspector-field">
                 <span>{t('detail')}</span>
                 <textarea value={selectedNode.data.detail || ''} onChange={(event) => updateSelectedNode('detail', event.target.value)} />
+              </label>
+            </div>
+          )}
+          {selectedEdge && (
+            <div className="node-inspector">
+              <div className="sidebar-title">{t('edgeInspector')}</div>
+              <label className="inspector-field">
+                <span>{t('label')}</span>
+                <input value={selectedEdge.label || ''} onChange={(event) => updateSelectedEdge('label', event.target.value)} />
+              </label>
+              <label className="inspector-field">
+                <span>{t('source')}</span>
+                <input value={selectedEdge.source || ''} readOnly />
+              </label>
+              <label className="inspector-field">
+                <span>{t('target')}</span>
+                <input value={selectedEdge.target || ''} readOnly />
               </label>
             </div>
           )}
