@@ -6,15 +6,17 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const SIMULATED = [
-  { emoji: '🎟️', name: 'World Cup Ticket · Col vs Mar', seller: 'Agent ALEX', price: 340, tag: 'analytical' },
-  { emoji: '💻', name: 'MacBook Pro M4 — 16GB', seller: 'Agent MAX', price: 820, tag: 'negotiator' },
-  { emoji: '🎧', name: 'AirPods Max — Space Gray', seller: 'Agent SARA', price: 18, tag: 'charming' },
-  { emoji: '👟', name: 'Nike Dunk Low — Panda', seller: 'maria.eth', price: 24, tag: 'human' },
-  { emoji: '📷', name: 'Fujifilm X100VI', seller: 'Agent LENA', price: 410, tag: 'stubborn' },
-  { emoji: '🎮', name: 'PS5 Slim + 2 games', seller: 'diego_b', price: 95, tag: 'human' },
-  { emoji: '⌚', name: 'Apple Watch Ultra 2', seller: 'Agent ZAI', price: 130, tag: 'fast' },
-  { emoji: '🪑', name: 'Herman Miller Aeron', seller: 'studio_nyc', price: 280, tag: 'human' },
+  { emoji: '🎟️', name: 'World Cup Ticket · Col vs Mar', seller: 'Agent ALEX', price: 340, tag: 'analytical', cat: 'Tickets' },
+  { emoji: '💻', name: 'MacBook Pro M4 — 16GB', seller: 'Agent MAX', price: 820, tag: 'negotiator', cat: 'Electronics' },
+  { emoji: '🎧', name: 'AirPods Max — Space Gray', seller: 'Agent SARA', price: 18, tag: 'charming', cat: 'Electronics' },
+  { emoji: '👟', name: 'Nike Dunk Low — Panda', seller: 'maria.eth', price: 24, tag: 'human', cat: 'Fashion' },
+  { emoji: '📷', name: 'Fujifilm X100VI', seller: 'Agent LENA', price: 410, tag: 'stubborn', cat: 'Electronics' },
+  { emoji: '🎮', name: 'PS5 Slim + 2 games', seller: 'diego_b', price: 95, tag: 'human', cat: 'Electronics' },
+  { emoji: '⌚', name: 'Apple Watch Ultra 2', seller: 'Agent ZAI', price: 130, tag: 'fast', cat: 'Electronics' },
+  { emoji: '🪑', name: 'Herman Miller Aeron', seller: 'studio_nyc', price: 280, tag: 'human', cat: 'Home' },
 ];
+
+const CATEGORIES = ['All', 'Electronics', 'Fashion', 'Home', 'Tickets', 'Collectibles', 'Other'];
 
 const tagColor = {
   analytical: 'var(--yellow)', negotiator: 'var(--accent)', charming: 'var(--purple-light)',
@@ -26,6 +28,8 @@ export default function Marketplace() {
   const es = i18n.language === 'es';
   const [items, setItems] = useState([]);
   const [newId, setNewId] = useState(null);
+  const [query, setQuery] = useState('');
+  const [cat, setCat] = useState('All');
 
   // Seed with real listings + a rotating slice of simulated ones.
   useEffect(() => {
@@ -38,7 +42,7 @@ export default function Marketplace() {
         const real = (listings || []).map((l) => ({
           id: l.id, emoji: '🏷️', name: l.name, seller: l.seller, price: null,
           tag: 'negotiator', real: true, active: l.id === activeId, onChain: l.onChain, photoUrl: l.photoUrl,
-          status: l.status, soldPrice: l.soldPrice,
+          status: l.status, soldPrice: l.soldPrice, cat: l.category || 'Other',
         }));
         setItems([...real, ...SIMULATED.map((s, i) => ({ ...s, id: `sim-${i}` }))]);
       })
@@ -72,8 +76,28 @@ export default function Marketplace() {
         <a href="/sell" className="btn-primary">{es ? '+ Vender' : '+ Sell'}</a>
       </div>
 
+      {/* search + category filter */}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+        <input
+          className="mkt-search"
+          placeholder={es ? '🔍 Buscar productos…' : '🔍 Search products…'}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {CATEGORIES.map((c) => (
+            <button key={c} className={`mkt-chip ${cat === c ? 'active' : ''}`} onClick={() => setCat(c)}>
+              {c === 'All' ? (es ? 'Todo' : 'All') : c}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-        {items.map((it) => (
+        {items
+          .filter((it) => cat === 'All' || it.cat === cat)
+          .filter((it) => !query.trim() || it.name.toLowerCase().includes(query.trim().toLowerCase()))
+          .map((it) => (
           <div key={it.id} className="mkt-card" style={it.id === newId ? { animation: 'mktPop .5s ease' } : undefined}>
             {it.status === 'sold' && <span className="mkt-sold-badge">✓ {es ? 'VENDIDO' : 'SOLD'}</span>}
             {it.status !== 'sold' && (it.id === newId || it.justNow) && <span className="mkt-new">● {es ? 'NUEVO' : 'NEW'}</span>}

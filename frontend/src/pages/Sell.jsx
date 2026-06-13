@@ -13,6 +13,7 @@ export default function Sell() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
+  const [category, setCategory] = useState('Other');
   const [status, setStatus] = useState(null); // null | 'sending' | listing | 'error'
   const [errMsg, setErrMsg] = useState(null);
   const [result, setResult] = useState(null);
@@ -60,6 +61,7 @@ export default function Sell() {
         body: JSON.stringify({
           name: name.trim(),
           description: description.trim(),
+          category,
           minPriceHbar: p,
           photoDataUrl: photo,
           seller: tg?.initDataUnsafe?.user ? `tg:${tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.id}` : 'web-seller',
@@ -161,6 +163,11 @@ export default function Sell() {
           rows={3}
           style={{ ...inputStyle, resize: 'none' }}
         />
+        <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ ...inputStyle, appearance: 'auto' }}>
+          {['Electronics', 'Fashion', 'Home', 'Tickets', 'Collectibles', 'Other'].map((c) => (
+            <option key={c} value={c}>{es ? `Categoría: ${c}` : `Category: ${c}`}</option>
+          ))}
+        </select>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
           <div className="amt-wrap" style={{ width: 130 }}>
             <input type="number" inputMode="decimal" min="1" placeholder="···" value={price} onChange={(e) => setPrice(e.target.value)} />
