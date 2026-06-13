@@ -11,7 +11,6 @@ import NegotiationPanel from '../components/NegotiationPanel.jsx';
 import WorldGate from '../components/WorldGate.jsx';
 import { toggleLang } from '../i18n';
 
-const BUDGETS = [10, 15, 20, 30, 50];
 const STRATEGIES = ['aggressive', 'charming', 'analytical', 'emotional'];
 
 export default function Offer() {
@@ -19,7 +18,7 @@ export default function Offer() {
   const { negotiations, connected, submitOffer } = useNegotiationFeed();
   const [negotiationId, setNegotiationId] = useState(() => `web-${crypto.randomUUID().slice(0, 8)}`);
   const [mode, setMode] = useState('human');
-  const [budgetIdx, setBudgetIdx] = useState(2);
+  const [maxBudget, setMaxBudget] = useState(20);
   const [strategy, setStrategy] = useState('charming');
   const [agentStatus, setAgentStatus] = useState(null);
   const [humanVerified, setHumanVerified] = useState(false);
@@ -56,13 +55,18 @@ export default function Offer() {
 
   async function deployAgent() {
     if (agentStatus === 'running') return;
+    const budget = Number(maxBudget);
+    if (!budget || budget < 1) {
+      setAgentStatus('error');
+      return;
+    }
     setAgentStatus('running');
     tg?.HapticFeedback?.impactOccurred?.('medium');
     try {
       const res = await fetch('/api/deploy-buyer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ negotiationId, strategy, maxBudget: BUDGETS[budgetIdx] }),
+        body: JSON.stringify({ negotiationId, strategy, maxBudget: budget }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
     } catch (err) {
@@ -142,12 +146,18 @@ export default function Offer() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <span style={{ fontSize: 12, color: 'var(--muted)' }}>{t('maxBudget')}</span>
-              <button
-                onClick={() => setBudgetIdx((budgetIdx + 1) % BUDGETS.length)}
-                style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '3px 10px', color: 'var(--text)', cursor: 'pointer' }}
-              >
-                {BUDGETS[budgetIdx]} HBAR
-              </button>
+              <div className="amt-wrap" style={{ width: 130 }}>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="1"
+                  step="1"
+                  placeholder="20"
+                  value={maxBudget}
+                  onChange={(e) => setMaxBudget(e.target.value)}
+                />
+                <span>HBAR</span>
+              </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 12, color: 'var(--muted)' }}>{t('strategy')}</span>
@@ -172,7 +182,7 @@ export default function Offer() {
           {agentStatus && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: 'rgba(68,136,255,.06)', border: '1px solid rgba(68,136,255,.2)', borderRadius: 6, marginBottom: 7, fontFamily: 'var(--mono)', fontSize: 9, color: agentStatus === 'error' ? 'var(--red)' : 'var(--blue)' }}>
               <div className="logo-dot" style={{ background: 'var(--blue)' }} />
-              {agentStatus === 'running' ? `${t('buyerAgent')} · ${t(strategy)} · ${BUDGETS[budgetIdx]} HBAR max` : agentStatus}
+              {agentStatus === 'running' ? `${t('buyerAgent')} · ${t(strategy)} · ${maxBudget} HBAR max` : agentStatus}
             </div>
           )}
           <button
