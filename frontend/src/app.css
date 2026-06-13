@@ -195,6 +195,10 @@
 .timeline-title span { font-family:var(--mono); color:var(--accent); font-size:10px; }
 .timeline-item.current .timeline-title span { color:var(--yellow); }
 .timeline-meta { margin-top:3px; color:var(--muted); font-family:var(--mono); font-size:9px; line-height:1.45; }
+.dryrun-btn.error { border-color:rgba(255,68,68,.4); color:var(--red, #FF4444); }
+.dryrun-results { margin-top:9px; border-top:1px solid var(--border); padding-top:9px; }
+.dryrun-meta { margin:-3px 0 8px; color:var(--muted); font-family:var(--mono); font-size:8px; letter-spacing:.08em; text-transform:uppercase; }
+.dryrun-type { font-family:var(--mono); font-style:normal; font-size:8px; color:var(--purple-light); text-transform:uppercase; letter-spacing:.06em; }
 .node-palette { display:flex; flex-direction:column; gap:8px; }
 .palette-item { display:flex; align-items:center; gap:9px; border:1px solid var(--border); border-radius:10px; padding:9px; background:var(--card); cursor:grab; transition:border-color .2s, transform .2s; }
 .palette-item:hover { border-color:var(--purple-light); transform:translateY(-1px); }

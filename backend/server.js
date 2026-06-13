@@ -18,6 +18,7 @@ import { createListing, getPublicListings, getActiveListing, markSold } from './
 import { rpSignature, verifyProof, worldIdEnabled, worldConfig } from './worldid.js';
 import { validateWorkflow, WorkflowValidationError } from './workflow-schema.js';
 import { saveWorkflow, getWorkflow, listWorkflows } from './workflows.js';
+import { executeDryRun } from './workflow-executor.js';
 
 const PORT = Number(process.env.PORT || 8787);
 const TOPIC = process.env.HCS10_NEGOTIATION_TOPIC;
@@ -223,6 +224,31 @@ app.post('/api/workflows', (req, res) => {
     console.error('[api/workflows]', err.message);
     res.status(500).json({ error: 'failed to store workflow' });
   }
+});
+
+// Dry-run an inline graph (current unsaved canvas). Validate → simulate → return
+// a deterministic event timeline. SIMULATION ONLY — touches no chain, no topic,
+// no agent. Every step is flagged simulated:true.
+app.post('/api/workflows/dry-run', (req, res) => {
+  try {
+    const canonical = validateWorkflow(req.body, { fallbackName: 'Untitled workflow' });
+    const result = executeDryRun(canonical, { runId: `dry-${Date.now().toString(36)}` });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    if (err instanceof WorkflowValidationError) {
+      return res.status(400).json({ error: err.message, code: err.code });
+    }
+    console.error('[api/workflows/dry-run]', err.message);
+    res.status(500).json({ error: 'failed to dry-run workflow' });
+  }
+});
+
+// Dry-run a previously stored workflow by id.
+app.post('/api/workflows/:id/dry-run', (req, res) => {
+  const workflow = getWorkflow(req.params.id);
+  if (!workflow) return res.status(404).json({ error: 'unknown workflow' });
+  const result = executeDryRun(workflow, { runId: `dry-${Date.now().toString(36)}` });
+  res.json({ ok: true, ...result });
 });
 
 // ── WebSocket ──

@@ -478,6 +478,8 @@ export default function Studio() {
   const [draftNotice, setDraftNotice] = useState(false);
   const [importError, setImportError] = useState('');
   const [publishState, setPublishState] = useState('idle'); // idle | publishing | done | error
+  const [dryRunState, setDryRunState] = useState('idle'); // idle | running | error
+  const [dryRunResult, setDryRunResult] = useState(null); // { workflowName, steps, ... }
   const onConnect = useCallback(
     (connection) => {
       if (connection.source === connection.target) {
@@ -960,6 +962,29 @@ export default function Studio() {
     }
   }
 
+  async function runServerDryRun() {
+    setDryRunState('running');
+    try {
+      const payload = {
+        name: workflowName.trim() || t('untitledWorkflow'),
+        nodes: cleanNodes(nodes),
+        edges: cleanEdges(edges),
+      };
+      const res = await fetch('/api/workflows/dry-run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('dry-run failed');
+      const result = await res.json();
+      setDryRunResult(result);
+      setDryRunState('idle');
+    } catch {
+      setDryRunState('error');
+      window.setTimeout(() => setDryRunState('idle'), 2600);
+    }
+  }
+
   async function importJson(event) {
     const [file] = event.target.files || [];
     event.target.value = '';
@@ -1258,6 +1283,40 @@ export default function Studio() {
                     ? t('publishError')
                     : t('publishWorkflow')}
             </button>
+            <button
+              className={`btn-ghost export-btn dryrun-btn ${dryRunState}`}
+              onClick={runServerDryRun}
+              disabled={dryRunState === 'running'}
+            >
+              {dryRunState === 'running'
+                ? t('dryRunning')
+                : dryRunState === 'error'
+                  ? t('dryRunError')
+                  : `▷ ${t('serverDryRun')}`}
+            </button>
+            {dryRunResult && (
+              <div className="dryrun-results">
+                <div className="timeline-head">
+                  <span>{t('dryRunResults')} · {dryRunResult.workflowName}</span>
+                  <strong>{dryRunResult.steps?.length || 0}</strong>
+                </div>
+                <div className="dryrun-meta">{t('dryRunSimulated')}</div>
+                <div className="timeline-list">
+                  {(dryRunResult.steps || []).map((step) => (
+                    <div className="timeline-item done" key={`${dryRunResult.runId}-${step.step}`}>
+                      <div className="timeline-step"><span>{step.step}</span></div>
+                      <div className="timeline-copy">
+                        <div className="timeline-title">
+                          <span>{step.icon}</span>
+                          {step.title} <em className="dryrun-type">{step.type}</em>
+                        </div>
+                        <div className="timeline-meta">{step.summary}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {importError && <div className="import-error">{importError}</div>}
           </div>
           <div className="sidebar-title studio-section-title">{t('nodePalette')}</div>
