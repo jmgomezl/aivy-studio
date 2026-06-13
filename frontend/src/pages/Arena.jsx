@@ -28,7 +28,9 @@ function lineFor(ev) {
     case 'agent_status':
       return ev.status || '';
     case 'settlement':
-      return ev.txId ? `Settled on-chain · tx ${String(ev.txId).slice(0, 18)}…` : 'Funds released on-chain';
+      return ev.scheduleId
+        ? `Scheduled settlement · ${ev.scheduleId}${ev.mode === 'scheduled-pending' ? ' · awaiting Ledger co-sign' : ' · auto-executed'}`
+        : ev.txId ? `Settled on-chain · tx ${String(ev.txId).slice(0, 18)}…` : 'Funds released on-chain';
     case 'reveal':
       return `Reserve revealed · min ${ev.minPrice} HBAR · accepted ${ev.acceptedPrice} HBAR`;
     default:

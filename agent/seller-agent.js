@@ -7,7 +7,8 @@ import 'dotenv/config';
 import { evaluateOffer } from './evaluate.js';
 import { speakVerdict } from './voice.js';
 import { agentClient, fetchTopicMessages, publishMessage } from './hedera.js';
-import { escrowClient, releaseEscrow } from './escrow.js';
+import { escrowClient } from './escrow.js';
+import { settleDeal } from './delegation.js';
 
 // Testnet-budget guard: the on-chain settlement moves a symbolic amount no
 // matter what price was negotiated, so demos can't drain the faucet balance.
@@ -85,20 +86,24 @@ export async function handleOffer(offer) {
     try {
       const settleAmount = Math.min(offer.price, SETTLE_CAP_HBAR);
       const escrow = escrowClient();
-      const res = await releaseEscrow(
-        escrow,
-        process.env.SELLER_AGENT_ACCOUNT_ID,
-        settleAmount,
-        offer.negotiationId
-      );
+      // Settle via a Hedera Scheduled Transaction (escrow → seller). Autonomous
+      // below the Ledger threshold (auto-executes); above it the schedule stays
+      // pending for a hardware co-sign.
+      const res = await settleDeal(escrow, {
+        from: process.env.HEDERA_OPERATOR_ID,
+        to: process.env.SELLER_AGENT_ACCOUNT_ID,
+        amountHbar: settleAmount,
+        negotiationId: offer.negotiationId,
+      });
       escrow.close();
       await publishMessage(client, TOPIC, {
         type: 'settlement',
         negotiationId: offer.negotiationId,
         amountHbar: settleAmount,
         negotiatedPrice: offer.price,
-        txId: res.txId,
-        status: res.status,
+        scheduleId: res.scheduleId,
+        scheduledTxId: res.scheduledTxId,
+        mode: res.mode,
       });
       await publishMessage(client, TOPIC, {
         type: 'reveal',
@@ -106,7 +111,7 @@ export async function handleOffer(offer) {
         minPrice: ctx.minPrice,
         acceptedPrice: offer.price,
       });
-      console.log(`[agent] settled ${settleAmount} HBAR (cap ${SETTLE_CAP_HBAR}) — ${res.txId}`);
+      console.log(`[agent] settled ${settleAmount} HBAR via scheduled tx (${res.mode}) — schedule ${res.scheduleId}`);
     } catch (err) {
       console.warn('[agent] settlement failed (verdict stands):', err.message);
     }

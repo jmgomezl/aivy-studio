@@ -19,31 +19,37 @@ import {
 export const LEDGER_THRESHOLD_HBAR = Number(process.env.LEDGER_THRESHOLD_HBAR || 50);
 
 /**
- * Settle an accepted deal under the delegation policy.
- * @returns {Promise<{mode:'direct',txId,status} | {mode:'scheduled',scheduleId,scheduledTxId}>}
+ * Settle an accepted deal as a Hedera Scheduled Transaction.
+ *
+ * EVERY settlement is scheduled (continuity / agentic track): the agent never
+ * fires a bare transfer, it always proposes a ScheduleCreate. The threshold
+ * decides whether it can run on its own:
+ *  - autonomous (amount <= threshold): the inner transfer draws from an account
+ *    the agent's key controls, so the agent's signature on the ScheduleCreate
+ *    satisfies it and the schedule EXECUTES immediately.
+ *  - gated (amount > threshold): the inner transfer draws from the vault key the
+ *    agent does NOT hold, so the schedule stays PENDING on-chain until a Ledger
+ *    co-sign (approveScheduled / ScheduleSignTransaction) — human-in-the-loop.
+ *
+ * @returns {Promise<{mode:'scheduled-executed'|'scheduled-pending', gated, scheduleId, scheduledTxId}>}
  */
-export async function settleDeal(client, { from, to, amountHbar, negotiationId }) {
+export async function settleDeal(client, { from, to, amountHbar, negotiationId, threshold = LEDGER_THRESHOLD_HBAR }) {
+  const gated = amountHbar > threshold;
   const transfer = new TransferTransaction()
     .addHbarTransfer(from, new Hbar(-amountHbar))
     .addHbarTransfer(to, new Hbar(amountHbar))
     .setTransactionMemo(`kickoff:settle:${negotiationId}`);
 
-  if (amountHbar <= LEDGER_THRESHOLD_HBAR) {
-    const tx = await transfer.execute(client);
-    const receipt = await tx.getReceipt(client);
-    return { mode: 'direct', txId: tx.transactionId.toString(), status: receipt.status.toString() };
-  }
-
-  // Above threshold: schedule it — executes only once the seller key signs.
   const scheduleTx = await new ScheduleCreateTransaction()
     .setScheduledTransaction(transfer)
-    .setScheduleMemo(`kickoff:ledger-approval:${negotiationId}`)
+    .setScheduleMemo(`kickoff:${gated ? 'ledger-approval' : 'autosettle'}:${negotiationId}`)
     .execute(client);
   const receipt = await scheduleTx.getReceipt(client);
   return {
-    mode: 'scheduled',
+    mode: gated ? 'scheduled-pending' : 'scheduled-executed',
+    gated,
     scheduleId: receipt.scheduleId.toString(),
-    scheduledTxId: receipt.scheduledTransactionId?.toString(),
+    scheduledTxId: receipt.scheduledTransactionId?.toString() ?? null,
   };
 }
 

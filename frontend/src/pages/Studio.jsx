@@ -466,7 +466,8 @@ function liveEventLine(event, index) {
     case 'settlement':
       return {
         id, icon: '💰', tag: 'SETTLEMENT', tone: 'yellow',
-        text: event.txId ? `tx ${String(event.txId).slice(0, 20)}…` : 'funds released', meta: tail,
+        text: event.scheduleId ? `scheduled tx · ${event.scheduleId}` : event.txId ? `tx ${String(event.txId).slice(0, 20)}…` : 'funds released',
+        meta: tail,
       };
     case 'reveal':
       return {
