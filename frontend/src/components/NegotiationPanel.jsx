@@ -95,7 +95,7 @@ export default function NegotiationPanel({
     const p = parseFloat(price);
     if (sending) return;
     if (!p || p < 1) {
-      setError(i18n.language === 'es' ? 'Pon un precio en HBAR (mín. 1)' : 'Enter a price in HBAR (min 1)');
+      setError(i18n.language === 'es' ? 'Pon un precio en USD (mín. 1)' : 'Enter a price in USD (min 1)');
       return;
     }
     if (argument.trim().length < 5) {
@@ -138,7 +138,7 @@ export default function NegotiationPanel({
           </div>
           <div className="neg-price-area">
             <div className="neg-price-val" style={{ color: prob != null ? meterColor(prob) : 'var(--yellow)' }}>
-              {lastOffer ? `${lastOffer.price} HBAR` : '—'}
+              {lastOffer ? `${lastOffer.price} USD` : '—'}
             </div>
             <div className="neg-price-sub">{t('currentOffer')}</div>
           </div>
@@ -173,7 +173,7 @@ export default function NegotiationPanel({
                 <div className={`cmsg-av ${isAgent ? 'buyer-agent' : 'human'}`}>{isAgent ? 'BA' : 'YOU'}</div>
                 <div className="cmsg-body">
                   <div className="cmsg-bubble">
-                    {m.price} HBAR — “{m.argument}”
+                    {m.price} USD — “{m.argument}”
                   </div>
                   <div className="cmsg-meta">
                     {isAgent ? `${t('buyerAgent')} · ${m.buyer.slice(6)}` : buyerLabel ?? t('judge')} · {time(m.consensusAt)} · seq {m.sequence}
@@ -211,7 +211,7 @@ export default function NegotiationPanel({
             <div className="cmsg-av human">YOU</div>
             <div className="cmsg-body">
               <div className="cmsg-bubble" style={{ opacity: 0.7 }}>
-                {pending.price} HBAR — “{pending.argument}”
+                {pending.price} USD — “{pending.argument}”
               </div>
               <div className="cmsg-meta">
                 ⏳ {i18n.language === 'es' ? 'registrando en Hedera…' : 'recording on Hedera…'}
@@ -232,7 +232,7 @@ export default function NegotiationPanel({
         <div className="verdict">
           <div className="verdict-icon">🤝</div>
           <div className="verdict-title" style={{ color: 'var(--accent)' }}>
-            {t('verdictAccept')} — {lastOffer?.price} HBAR
+            {t('verdictAccept')} — {lastOffer?.price} USD
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <a className="verdict-tx" href={`https://hashscan.io/testnet/topic/0.0.9217269`} target="_blank" rel="noreferrer">
@@ -303,17 +303,17 @@ export default function NegotiationPanel({
           <div className="reveal-hdr">{t('minRevealed')}</div>
           <div className="reveal-grid">
             <div className="reveal-item">
-              <div className="reveal-val" style={{ color: 'var(--muted)' }}>{n.reveal.minPrice} HBAR</div>
+              <div className="reveal-val" style={{ color: 'var(--muted)' }}>{n.reveal.minPrice} USD</div>
               <div className="reveal-lbl">{t('minPrice')}</div>
             </div>
             <div className="reveal-item">
-              <div className="reveal-val" style={{ color: 'var(--accent)' }}>{n.reveal.acceptedPrice} HBAR</div>
+              <div className="reveal-val" style={{ color: 'var(--accent)' }}>{n.reveal.acceptedPrice} USD</div>
               <div className="reveal-lbl">{t('offerAccepted')}</div>
             </div>
             <div className="reveal-item">
               <div className={`reveal-val ${n.reveal.acceptedPrice - n.reveal.minPrice >= 0 ? 'spread-pos' : 'spread-neg'}`}>
                 {n.reveal.acceptedPrice - n.reveal.minPrice >= 0 ? '+' : ''}
-                {n.reveal.acceptedPrice - n.reveal.minPrice} HBAR
+                {n.reveal.acceptedPrice - n.reveal.minPrice} USD
               </div>
               <div className="reveal-lbl">{t('spread')}</div>
             </div>
@@ -416,7 +416,7 @@ export default function NegotiationPanel({
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
               />
-              <span>HBAR</span>
+              <span>USD</span>
             </div>
             <textarea
               className="arg-input"

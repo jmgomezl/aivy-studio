@@ -125,8 +125,8 @@ export default function Marketplace() {
             <div className="mkt-foot">
               <span className="mkt-price">
                 {it.status === 'sold'
-                  ? `${it.soldPrice} HBAR`
-                  : it.price != null ? `${it.price} HBAR` : (es ? 'Reserva oculta' : 'Hidden reserve')}
+                  ? `${it.soldPrice} USD`
+                  : it.price != null ? `${it.price} USD` : (es ? 'Reserva oculta' : 'Hidden reserve')}
               </span>
               {it.status === 'sold'
                 ? <span className="mkt-bid" style={{ color: 'var(--accent)', borderColor: 'rgba(0,255,135,.3)', cursor: 'default' }}>✓ {es ? 'Vendido' : 'Sold'}</span>

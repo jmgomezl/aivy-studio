@@ -51,7 +51,7 @@ export default function Sell() {
   async function submit() {
     const p = Number(price);
     if (!name.trim() || !p || p < 1) {
-      setErrMsg(es ? 'Falta nombre o precio (mín. 1 HBAR)' : 'Missing name or price (min 1 HBAR)');
+      setErrMsg(es ? 'Falta nombre o precio (mín. 1 USD)' : 'Missing name or price (min 1 USD)');
       setStatus('error');
       return;
     }
@@ -179,7 +179,7 @@ export default function Sell() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
           <div className="amt-wrap" style={{ width: 130 }}>
             <input type="number" inputMode="decimal" min="1" placeholder="···" value={price} onChange={(e) => setPrice(e.target.value)} />
-            <span>HBAR</span>
+            <span>USD</span>
           </div>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--yellow)' }}>
             🔒 {es ? 'precio secreto' : 'secret price'}

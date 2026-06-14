@@ -31,7 +31,7 @@
   "negotiationLivePartial": "Negotiation live · partial",
   "roundPartial": "Partial · not a final no",
   "agentHoldingOut": "Agent is holding out for more",
-  "agentCountered": "Agent counters at {{price}} HBAR",
+  "agentCountered": "Agent counters at {{price}} USD",
   "agentsNegotiating": "Agents are still negotiating — the buyer will raise and counter.",
   "keepNegotiating": "Not a final no — sweeten the price or the story and offer again.",
   "minRevealed": "🔓 Seller minimum revealed",

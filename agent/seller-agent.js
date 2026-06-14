@@ -25,7 +25,7 @@ import { existsSync, readFileSync } from 'node:fs';
 
 const ctx = {
   productName: process.env.PRODUCT_NAME || 'Specialty Coffee — Single Origin',
-  currency: 'HBAR',
+  currency: 'USD',
   minPrice: Number(process.env.SELLER_MIN_PRICE_HBAR || 25),
   history: [],
 };

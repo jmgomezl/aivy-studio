@@ -130,7 +130,7 @@ export default function TelegramLogin({ onChange, es = false, role = 'seller' })
                 </span>
                 <span style={{ color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 9 }}>
                   {rep.sales} {es ? 'ventas' : 'sales'} · {rep.buys} {es ? 'compras' : 'buys'}
-                  {rep.volumeHbar ? ` · ${rep.volumeHbar} HBAR` : ''}
+                  {rep.volumeHbar ? ` · ${rep.volumeHbar} USD` : ''}
                 </span>
               </div>
             )}

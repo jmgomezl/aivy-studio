@@ -31,7 +31,7 @@ export default function Landing() {
         .then((d) => {
           const acts = (d.listings || []).map((l) => {
             const NAME = (l.name || '').toUpperCase();
-            if (l.status === 'sold') return `✓ SOLD · ${NAME} → ${l.soldPrice} HBAR`;
+            if (l.status === 'sold') return `✓ SOLD · ${NAME} → ${l.soldPrice} USD`;
             if (d.active && l.id === d.active.id) return `● LIVE · ${NAME} · RESERVE COMMITTED ON-CHAIN`;
             return `LISTED · ${NAME}`;
           });
@@ -103,7 +103,7 @@ export default function Landing() {
             <li>{i18n.language === 'es' ? 'Precio mínimo comprometido on-chain (hash secreto)' : 'Minimum price committed on-chain (secret hash)'}</li>
             <li>{i18n.language === 'es' ? 'Ofreces precio + tu historia' : 'You offer a price + your story'}</li>
             <li>{i18n.language === 'es' ? 'El agente decide y habla su veredicto' : 'The agent decides and speaks its verdict'}</li>
-            <li>{i18n.language === 'es' ? 'HBAR se transfiere · el mínimo se revela' : 'HBAR transfers · the minimum is revealed'}</li>
+            <li>{i18n.language === 'es' ? 'El pago se liquida · el mínimo se revela' : 'Payment settles · the minimum is revealed'}</li>
           </ol>
           <div style={{ marginTop: 14, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
             {t('onChainProof')}

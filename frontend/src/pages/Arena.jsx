@@ -25,11 +25,11 @@ function badge(ev) {
 function lineFor(ev) {
   switch (ev.type) {
     case 'offer':
-      return `${ev.price} HBAR — ${ev.argument}`;
+      return `${ev.price} USD — ${ev.argument}`;
     case 'agent_reasoning':
       return ev.reasoning || '';
     case 'agent_verdict':
-      return ev.spokenVerdict || (ev.decision === 'counter' && ev.counterPrice ? `Counter at ${ev.counterPrice} HBAR` : ev.decision || '');
+      return ev.spokenVerdict || (ev.decision === 'counter' && ev.counterPrice ? `Counter at ${ev.counterPrice} USD` : ev.decision || '');
     case 'agent_status':
       return ev.status || '';
     case 'settlement':
@@ -37,7 +37,7 @@ function lineFor(ev) {
         ? `Scheduled settlement · ${ev.scheduleId}${ev.mode === 'scheduled-pending' ? ' · awaiting Ledger co-sign' : ' · auto-executed'}`
         : ev.txId ? `Settled on-chain · tx ${String(ev.txId).slice(0, 18)}…` : 'Funds released on-chain';
     case 'reveal':
-      return `Reserve revealed · min ${ev.minPrice} HBAR · accepted ${ev.acceptedPrice} HBAR`;
+      return `Reserve revealed · min ${ev.minPrice} USD · accepted ${ev.acceptedPrice} USD`;
     case 'insurance':
       return `Package insured on-chain · ${ev.premiumHbar} HBAR premium · covers ${ev.coverageHbar} HBAR${ev.txHash ? ' · ' + String(ev.txHash).slice(0, 12) + '…' : ''}`;
     case 'payment':

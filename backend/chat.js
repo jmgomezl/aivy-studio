@@ -21,7 +21,7 @@ function fallbackReply(message, productName) {
   return `I hear you. But ${p} deserves more than words — bring me a price and a reason that comes from the heart, and let's see if we shake hands on-chain.`;
 }
 
-export async function sellerChat({ message, history = [], productName = 'this item', currency = 'HBAR' }) {
+export async function sellerChat({ message, history = [], productName = 'this item', currency = 'USD' }) {
   const safe = (t) => scrubReserve(String(t || '').trim());
   if (!process.env.OPENAI_API_KEY) return safe(fallbackReply(message, productName));
 

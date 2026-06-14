@@ -545,7 +545,7 @@ function liveEventLine(event, index) {
       const isAgent = String(event.buyer ?? '').startsWith('agent:');
       return {
         id, icon: isAgent ? '🤖' : '👤', tag: 'OFFER', tone: 'blue',
-        text: `${event.price} HBAR — “${event.argument}”`,
+        text: `${event.price} USD — “${event.argument}”`,
         meta: `${isAgent ? 'buyer agent' : 'human'} · ${tail}`,
       };
     }
@@ -561,7 +561,7 @@ function liveEventLine(event, index) {
       const icon = event.decision === 'accept' ? '✅' : event.decision === 'counter' ? '🔁' : '🚫';
       const text =
         event.spokenVerdict ||
-        (event.decision === 'counter' && event.counterPrice ? `counter ${event.counterPrice} HBAR` : event.decision);
+        (event.decision === 'counter' && event.counterPrice ? `counter ${event.counterPrice} USD` : event.decision);
       return { id, icon, tag: `VERDICT · ${event.decision}`, tone, text, meta: tail };
     }
     case 'settlement':
@@ -573,7 +573,7 @@ function liveEventLine(event, index) {
     case 'reveal':
       return {
         id, icon: '🔒', tag: 'REVEAL', tone: 'green',
-        text: `min ${event.minPrice} HBAR · accepted ${event.acceptedPrice} HBAR`, meta: tail,
+        text: `min ${event.minPrice} USD · accepted ${event.acceptedPrice} USD`, meta: tail,
       };
     case 'swap_status':
       return { id, icon: '🦄', tag: 'SWAP', tone: 'purple', text: `converting → ${event.tokenOut || 'token'} via Uniswap…`, meta: tail };

@@ -211,7 +211,7 @@ export default function Offer() {
                   value={maxBudget}
                   onChange={(e) => setMaxBudget(e.target.value)}
                 />
-                <span>HBAR</span>
+                <span>USD</span>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
@@ -237,7 +237,7 @@ export default function Offer() {
           {agentStatus && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: 'rgba(68,136,255,.06)', border: '1px solid rgba(68,136,255,.2)', borderRadius: 6, marginBottom: 7, fontFamily: 'var(--mono)', fontSize: 9, color: agentStatus === 'error' ? 'var(--red)' : 'var(--blue)' }}>
               <div className="logo-dot" style={{ background: 'var(--blue)' }} />
-              {agentStatus === 'running' ? `${t('buyerAgent')} · ${t(strategy)} · ${maxBudget} HBAR max` : agentStatus}
+              {agentStatus === 'running' ? `${t('buyerAgent')} · ${t(strategy)} · ${maxBudget} USD max` : agentStatus}
             </div>
           )}
           <button
