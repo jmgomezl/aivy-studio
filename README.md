@@ -24,10 +24,23 @@ Visual node graph (@xyflow/react) for composing agent workflows. The Kickoff tem
 ## Stack
 - **Hedera** — HCS-10/OpenConvAI (agent identity + messaging), HTS (escrow in HBAR), EVM smart contract (commitment scheme + collateral), Scheduled Transactions (Ledger pre-sign)
 - **Hedera Agent Kit** — agent orchestration
+- **Uniswap** — cross-asset settlement via [`hak-uniswap-plugin`](https://www.npmjs.com/package/hak-uniswap-plugin), the first Uniswap plugin for the Hedera Agent Kit (built here, contributed upstream)
 - **Ledger** — pre-signed delegation policy (sign once, agent operates within limits)
 - **OpenAI GPT-4o** — agent reasoning (model-agnostic)
 - **ElevenLabs** — agent voice
 - **Node.js · Express · WebSocket · Telegraf · React 18 + Vite · i18next (ES/EN)**
+
+## Uniswap cross-asset settlement (`hak-uniswap-plugin`)
+
+When a deal closes, the seller agent converts proceeds into the seller's preferred token through **Uniswap** permissionless liquidity on an EVM chain, then records the swap back on Hedera HCS-10 — genuine cross-asset settlement for a Hedera-native agent.
+
+It's powered by **[`hak-uniswap-plugin`](https://www.npmjs.com/package/hak-uniswap-plugin)** — the **first Uniswap plugin for the Hedera Agent Kit**, built for this project and contributed upstream:
+
+- 📦 npm: [`hak-uniswap-plugin@0.1.0`](https://www.npmjs.com/package/hak-uniswap-plugin)
+- 🔧 Source: [github.com/jmgomezl/hak-uniswap-plugin](https://github.com/jmgomezl/hak-uniswap-plugin)
+- 🔀 HAK upstream PR: [hashgraph/hedera-agent-kit-js#921](https://github.com/hashgraph/hedera-agent-kit-js/pull/921)
+- One tool, `uniswap_swap`: quote → **dynamic ERC-20 allowance** → execute, with an optional **Ledger Clear-Sign gate** above a threshold.
+- Validated on-chain (ETH → USDC, Ethereum Sepolia): [`0xb1dc8201…ccbd9e`](https://sepolia.etherscan.io/tx/0xb1dc82013663110221d8039f2873e4f64ba742485ba8b4275a70f3d214ccbd9e) — fired automatically as the settlement leg of a live Kickoff deal.
 
 ## Structure
 ```
