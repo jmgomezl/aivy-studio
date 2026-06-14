@@ -28,6 +28,7 @@ import {
   issueSession,
   verifySession,
 } from './telegram-auth.js';
+import { readBalances } from './lib/faucet.js';
 
 const TELEGRAM_BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME || 'cryptokickoffbot';
 
@@ -225,7 +226,7 @@ app.post('/api/auth/telegram', async (req, res) => {
   const result = verifyTelegramAuth(req.body || {});
   if (!result.ok) return res.status(401).json({ ok: false, error: `telegram auth failed (${result.reason})` });
   try {
-    const wallet = await getOrCreateSellerWallet(result.profile);
+    const wallet = await getOrCreateSellerWallet(result.profile, { operatorClient: operator });
     const token = issueSession(result.profile, wallet.evmAddress);
     res.json({
       ok: true,
@@ -235,13 +236,26 @@ app.post('/api/auth/telegram', async (req, res) => {
         username: result.profile.username,
         photoUrl: result.profile.photoUrl,
         walletEvm: wallet.evmAddress,
-        hederaAccount: wallet.hederaAlias || (wallet.evmAddress ? `0.0.${wallet.evmAddress.slice(2).toLowerCase()}` : null),
+        // Prefer the real provisioned account id once funded; fall back to the alias.
+        hederaAccount: wallet.hederaAccount || wallet.hederaAlias || (wallet.evmAddress ? `0.0.${wallet.evmAddress.slice(2).toLowerCase()}` : null),
+        funded: !!wallet.funded,
+        fundedUsd: wallet.fundedUsd || 0,
+        gasHbar: wallet.gasHbar || 0,
       },
     });
   } catch (err) {
     console.error('[api/auth/telegram]', err.message);
     res.status(500).json({ ok: false, error: 'could not provision seller wallet' });
   }
+});
+
+// Live KUSD + HBAR balance for a funded wallet (mirror node).
+app.get('/api/wallet/balance', async (req, res) => {
+  const acct = req.query.account || req.query.evm;
+  if (!acct) return res.status(400).json({ error: 'account or evm required' });
+  const bal = await readBalances(acct);
+  if (!bal) return res.status(404).json({ error: 'account not found / not indexed yet' });
+  res.json({ ok: true, ...bal, tokenSymbol: 'KUSD' });
 });
 
 // ── Conversational chat with the seller agent (off-chain negotiation layer) ──

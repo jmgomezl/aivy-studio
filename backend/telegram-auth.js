@@ -7,6 +7,7 @@
 import crypto from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { createManagedWallet } from './lib/wallet.js';
+import { provisionAndFund, faucetEnabled } from './lib/faucet.js';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 // Session-signing secret. Falls back to a key derived from the bot token so no
@@ -73,12 +74,16 @@ export function verifyTelegramAuth(payload) {
  * is the wallet "associated with the Telegram identity"; its EVM address is the
  * seller's stable on-chain handle.
  */
-export async function getOrCreateSellerWallet(profile) {
+export async function getOrCreateSellerWallet(profile, { operatorClient } = {}) {
   const id = profile.telegramId;
   if (sellers[id]?.evmAddress) {
     if (profile.username && sellers[id].username !== profile.username) {
       sellers[id].username = profile.username;
       persistSellers();
+    }
+    // Heal a wallet that exists but was never funded (e.g. faucet hiccup on first login).
+    if (operatorClient && faucetEnabled() && !sellers[id].funded) {
+      await fundSellerWallet(id, operatorClient);
     }
     return sellers[id];
   }
@@ -90,9 +95,30 @@ export async function getOrCreateSellerWallet(profile) {
     hederaAlias: wallet.hederaAlias, // same key, Hedera EVM-alias account
     encryptedKey: wallet.encryptedKey,
     createdAt: new Date().toISOString(),
+    funded: false,
   };
   persistSellers();
+  // Provision the real on-chain account + grant KUSD so judges can test with real
+  // balances. Best-effort: a faucet failure must not block login (wallet stands,
+  // funding retries on next login via the heal path above).
+  if (operatorClient && faucetEnabled()) {
+    await fundSellerWallet(id, operatorClient);
+  }
   return sellers[id];
+}
+
+async function fundSellerWallet(id, operatorClient) {
+  try {
+    const r = await provisionAndFund(sellers[id], operatorClient);
+    sellers[id].hederaAccount = r.accountId;
+    sellers[id].funded = true;
+    sellers[id].fundedUsd = r.fundedUsd;
+    sellers[id].gasHbar = r.gasHbar;
+    sellers[id].fundedAt = new Date().toISOString();
+    persistSellers();
+  } catch (err) {
+    console.warn(`[faucet] funding failed for ${id} (wallet stands):`, err.message);
+  }
 }
 
 /** Issue a signed session token carrying the verified identity. */

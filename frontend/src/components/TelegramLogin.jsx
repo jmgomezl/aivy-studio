@@ -23,6 +23,7 @@ export default function TelegramLogin({ onChange, es = false, role = 'seller' })
   const [config, setConfig] = useState(null);
   const [copied, setCopied] = useState('');
   const [rep, setRep] = useState(null);
+  const [bal, setBal] = useState(null);
   const widgetRef = useRef(null);
 
   // Pull the signed-in user's reputation (sales / purchases / tier).
@@ -30,6 +31,18 @@ export default function TelegramLogin({ onChange, es = false, role = 'seller' })
     const id = auth?.profile?.username ? `tg:${auth.profile.username}` : auth?.profile?.telegramId ? `tg:${auth.profile.telegramId}` : null;
     if (!id) return setRep(null);
     fetch(`/api/reputation?id=${encodeURIComponent(id)}`).then((r) => r.json()).then(setRep).catch(() => {});
+  }, [auth]);
+
+  // Live KUSD + HBAR balance for the funded managed wallet.
+  useEffect(() => {
+    const acct = auth?.profile?.hederaAccount;
+    if (!acct || !auth?.profile?.funded) return setBal(null);
+    let on = true;
+    fetch(`/api/wallet/balance?account=${encodeURIComponent(acct)}`)
+      .then((r) => r.json())
+      .then((b) => { if (on && b.ok) setBal(b); })
+      .catch(() => {});
+    return () => { on = false; };
   }, [auth]);
 
   function copy(value, key) {
@@ -141,6 +154,17 @@ export default function TelegramLogin({ onChange, es = false, role = 'seller' })
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 8.5, color: 'var(--muted)', lineHeight: 1.7 }}>
                   <div style={rowStyle}>EVM <span style={{ color: 'var(--text)' }}>{short(evm, 8, 4)}</span> {copyBtn(evm, 'evm')}</div>
                   <div style={rowStyle}>Hedera <span style={{ color: 'var(--accent)' }}>{short(hedera, 10)}</span> {copyBtn(hedera, 'hedera')}</div>
+                  {(bal || auth.profile?.funded) && (
+                    <div style={rowStyle}>
+                      <span style={{ color: '#3FE08F', fontWeight: 700 }}>
+                        💵 {bal ? bal.usd.toLocaleString() : (auth.profile?.fundedUsd ?? 1000).toLocaleString()} KUSD
+                      </span>
+                      <span style={{ color: 'var(--muted)' }}>· {bal ? bal.hbar : (auth.profile?.gasHbar ?? 1)} ℏ {es ? 'gas' : 'gas'}</span>
+                      {hedera && hedera.startsWith('0.0.') && (
+                        <a href={`https://hashscan.io/testnet/account/${hedera}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>↗</a>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })()}
