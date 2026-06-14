@@ -170,6 +170,12 @@
     "facilitator": "Facilitator",
     "settlementMode": "Settlement mode",
     "receiptTarget": "Receipt target",
+    "ensName": "ENS name",
+    "resolver": "Resolver",
+    "ownerWallet": "Owner wallet",
+    "textRecords": "Text records",
+    "coinRecords": "Coin records",
+    "verificationMode": "Verification mode",
     "apiName": "API name",
     "endpoint": "Endpoint",
     "auth": "Auth"
@@ -192,6 +198,7 @@
       "uniswap": "{{node}} prepared swap",
       "openclaw": "{{node}} ran external agent task",
       "x402": "{{node}} prepared paid resource request",
+      "ens": "{{node}} resolved agent identity",
       "custom": "{{node}} completed step"
     }
   },
@@ -219,6 +226,10 @@
     "x402": {
       "title": "x402 Paid Resource",
       "desc": "Agents can request metered APIs or external agent endpoints through HTTP 402 payment handshakes with spend caps."
+    },
+    "ens": {
+      "title": "ENS Agent Identity",
+      "desc": "Resolve agent names, wallets, and records before routing work into OpenClaw, Kickoff, or paid-resource flows."
     }
   },
   "palette": {
@@ -276,6 +287,11 @@
       "title": "x402 Payment",
       "sub": "HTTP 402 paid resource",
       "detail": "pay APIs or agents with spend caps"
+    },
+    "ens": {
+      "title": "ENS Identity",
+      "sub": "agent name + records",
+      "detail": "resolve wallets, topics, and metadata"
     }
   },
   "howItWorks": "How it works",

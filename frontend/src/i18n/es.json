@@ -170,6 +170,12 @@
     "facilitator": "Facilitador",
     "settlementMode": "Modo de liquidación",
     "receiptTarget": "Destino del recibo",
+    "ensName": "Nombre ENS",
+    "resolver": "Resolver",
+    "ownerWallet": "Wallet dueña",
+    "textRecords": "Registros de texto",
+    "coinRecords": "Registros de monedas",
+    "verificationMode": "Modo de verificación",
     "apiName": "Nombre API",
     "endpoint": "Endpoint",
     "auth": "Auth"
@@ -192,6 +198,7 @@
       "uniswap": "{{node}} preparó swap",
       "openclaw": "{{node}} ejecutó tarea de agente externo",
       "x402": "{{node}} preparó solicitud de recurso pago",
+      "ens": "{{node}} resolvió identidad del agente",
       "custom": "{{node}} completó paso"
     }
   },
@@ -219,6 +226,10 @@
     "x402": {
       "title": "Recurso pago x402",
       "desc": "Los agentes pueden solicitar APIs medidas o endpoints de otros agentes usando handshakes HTTP 402 con límites de gasto."
+    },
+    "ens": {
+      "title": "Identidad de agente ENS",
+      "desc": "Resuelve nombres, wallets y registros de agentes antes de enrutar trabajo a OpenClaw, Kickoff o recursos pagos."
     }
   },
   "palette": {
@@ -276,6 +287,11 @@
       "title": "Pago x402",
       "sub": "recurso pago HTTP 402",
       "detail": "paga APIs o agentes con límites"
+    },
+    "ens": {
+      "title": "Identidad ENS",
+      "sub": "nombre + registros del agente",
+      "detail": "resuelve wallets, topics y metadata"
     }
   },
   "howItWorks": "Cómo funciona",

@@ -110,6 +110,9 @@ function defaultEdgeLabel(sourceNode, targetNode) {
   if ((sourceKind === 'agent' || sourceKind === 'openclaw') && targetKind === 'x402') return 'pay';
   if (sourceKind === 'x402' && (targetKind === 'agent' || targetKind === 'openclaw')) return 'paid response';
   if (sourceKind === 'x402' && targetKind === 'hcs10') return 'receipt';
+  if (sourceKind === 'ens' && (targetKind === 'agent' || targetKind === 'openclaw')) return 'identity';
+  if ((sourceKind === 'agent' || sourceKind === 'openclaw') && targetKind === 'ens') return 'resolve';
+  if (sourceKind === 'ens' && targetKind === 'hcs10') return 'attest';
   if (sourceKind === 'agent' && targetKind === 'hcs10') return 'message';
   if (sourceKind === 'hcs10' && targetKind === 'agent') return 'event';
   if (sourceKind === 'agent' && targetKind === 'escrow') return 'settle';
@@ -193,6 +196,15 @@ const nodeConfigFields = {
     { key: 'facilitator', placeholder: 'https://facilitator.x402.org' },
     { key: 'settlementMode', type: 'select', options: ['exact', 'max-cap', 'manual-approval'] },
     { key: 'receiptTarget', placeholder: 'hcs10 topic / webhook' },
+  ],
+  ens: [
+    { key: 'ensName', placeholder: 'kickoffseller.eth' },
+    { key: 'network', type: 'select', options: ['sepolia', 'mainnet'] },
+    { key: 'resolver', placeholder: 'public resolver / custom resolver' },
+    { key: 'ownerWallet', placeholder: '0x...' },
+    { key: 'textRecords', type: 'textarea' },
+    { key: 'coinRecords', placeholder: 'ETH, HBAR, BTC' },
+    { key: 'verificationMode', type: 'select', options: ['resolve-only', 'require-reverse', 'verify-agent-records'] },
   ],
   custom: [
     { key: 'apiName', placeholder: 'external service' },
@@ -419,6 +431,45 @@ const studioTemplateDefinitions = [
       { id: 'x402-edge-pay-gate', source: 'x402-pay', target: 'x402-gate', label: 'over cap' },
     ],
   },
+  {
+    id: 'ens-agent-identity',
+    emoji: 'ENS',
+    titleKey: 'studioTemplates.ens.title',
+    descKey: 'studioTemplates.ens.desc',
+    nodes: [
+      studioNode('ens-identity', 'ens', 'ENS', '#5298FF', 'ENS Identity', 'agent name + records', 'resolves the agent name, wallet, and metadata before execution', 80, 120, {
+        ensName: 'kickoffseller.eth',
+        network: 'sepolia',
+        resolver: 'public resolver',
+        textRecords: 'hedera.account, hedera.hcs10.topic, agent.role',
+        coinRecords: 'ETH, HBAR',
+        verificationMode: 'verify-agent-records',
+      }),
+      studioNode('ens-openclaw', 'openclaw', 'OC', '#F97316', 'OpenClaw Agent', 'external worker', 'uses ENS-resolved metadata to run the right external agent', 350, 120, {
+        endpoint: 'https://openclaw.example.com/api/tasks',
+        agentId: 'ens-routed-agent',
+        auth: 'api-key',
+      }),
+      studioNode('ens-audit', 'hcs10', '⬡', '#00FF87', 'Identity Audit Topic', 'HCS-10 proof trail', 'records ENS resolution and agent handoff events', 620, 120, {
+        network: 'hedera-testnet',
+        memo: 'ens-agent-identity',
+      }),
+      studioNode('ens-kickoff', 'agent', '🤖', '#A78BFA', 'Kickoff Agent', 'trusted handoff', 'continues negotiation with ENS-backed identity context', 890, 120, {
+        model: 'gpt-4o',
+        tools: 'hcs10, escrow, voice',
+      }),
+      studioNode('ens-gate', 'approval', '🔐', '#FF4444', 'Record Gate', 'trust policy', 'requires matching ENS records before settlement or payment', 890, 300, {
+        threshold: 'records verified',
+        timeout: '5m',
+      }),
+    ],
+    edges: [
+      { id: 'ens-edge-identity-openclaw', source: 'ens-identity', target: 'ens-openclaw', label: 'identity' },
+      { id: 'ens-edge-openclaw-audit', source: 'ens-openclaw', target: 'ens-audit', label: 'agent output' },
+      { id: 'ens-edge-audit-kickoff', source: 'ens-audit', target: 'ens-kickoff', label: 'context' },
+      { id: 'ens-edge-identity-gate', source: 'ens-identity', target: 'ens-gate', label: 'record check' },
+    ],
+  },
 ];
 
 function normalizeImportedWorkflow(value, fallbackName) {
@@ -640,6 +691,7 @@ export default function Studio() {
       { kind: 'uniswap', icon: '🦄', color: '#FF007A', title: t('palette.uniswap.title'), sub: t('palette.uniswap.sub'), detail: t('palette.uniswap.detail') },
       { kind: 'openclaw', icon: 'OC', color: '#F97316', title: t('palette.openclaw.title'), sub: t('palette.openclaw.sub'), detail: t('palette.openclaw.detail') },
       { kind: 'x402', icon: '$', color: '#22C55E', title: t('palette.x402.title'), sub: t('palette.x402.sub'), detail: t('palette.x402.detail') },
+      { kind: 'ens', icon: 'ENS', color: '#5298FF', title: t('palette.ens.title'), sub: t('palette.ens.sub'), detail: t('palette.ens.detail') },
     ],
     [t]
   );

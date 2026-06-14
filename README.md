@@ -19,11 +19,12 @@ Ships with **Kickoff.bot**, the first pre-built template: a P2P agent-driven neg
 A buyer makes an offer (Telegram Mini App or web) with a price **and an argument**. A seller agent — with a personality, a minimum price committed on-chain, and emotional criteria — decides autonomously whether to sell. The agent speaks its verdict via ElevenLabs voice. Everything executes on Hedera.
 
 ### Aivy Studio (canvas)
-Visual node graph (@xyflow/react) for composing agent workflows. The Kickoff template loads the full negotiation flow as connected nodes: seller agent, buyer agent, HCS-10 communication layer, HTS escrow, Ledger approval gate. Studio also exposes connector nodes for **OpenClaw** and **x402**, so external agents and paid API/tool calls can be planned from the canvas before they are wired into a live runtime.
+Visual node graph (@xyflow/react) for composing agent workflows. The Kickoff template loads the full negotiation flow as connected nodes: seller agent, buyer agent, HCS-10 communication layer, HTS escrow, Ledger approval gate. Studio also exposes connector nodes for **ENS**, **OpenClaw**, and **x402**, so agent identity, external agents, and paid API/tool calls can be planned from the canvas before they are wired into a live runtime.
 
 ## Stack
 - **Hedera** — HCS-10/OpenConvAI (agent identity + messaging), HTS (escrow in HBAR), EVM smart contract (commitment scheme + collateral), Scheduled Transactions (Ledger pre-sign)
 - **Hedera Agent Kit** — agent orchestration
+- **ENS** — Studio connector for resolving agent names, wallets, and metadata records before routing work into external agents or Kickoff flows
 - **Uniswap** — cross-asset settlement via [`hak-uniswap-plugin`](https://www.npmjs.com/package/hak-uniswap-plugin), the first Uniswap plugin for the Hedera Agent Kit (built here, contributed upstream)
 - **x402** — Studio connector for HTTP 402 paid resources, letting agents model capped stablecoin payments for metered APIs or external agent endpoints
 - **Ledger** — pre-signed delegation policy (sign once, agent operates within limits)
@@ -37,6 +38,7 @@ Aivy Studio is the orchestration surface. Kickoff is the first production templa
 
 - **OpenClaw Agent** — external agent task connector with endpoint, agent ID, auth, input mapping, output mapping, and timeout configuration.
 - **x402 Payment** — paid-resource connector for HTTP 402 flows, with resource URL, network, payment token, max spend, facilitator, settlement mode, and receipt target fields.
+- **ENS Identity** — agent identity connector with ENS name, resolver, owner wallet, text records, coin records, and verification-mode configuration.
 
 The current Studio connector behavior is intentionally safe: local simulation and server dry-runs preserve connector semantics without moving funds or calling external services.
 

@@ -29,6 +29,7 @@ const KIND_EVENT = {
   uniswap: { type: 'swap', verb: 'executes a token swap' },
   openclaw: { type: 'connector_task', verb: 'runs an external OpenClaw agent task' },
   x402: { type: 'paid_resource', verb: 'prepares an x402 paid resource request' },
+  ens: { type: 'identity_resolution', verb: 'resolves ENS agent identity and records' },
   custom: { type: 'custom', verb: 'calls the configured external service' },
 };
 

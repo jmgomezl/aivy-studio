@@ -90,9 +90,10 @@ async function assertSafeKickoffTemplate(page) {
   await page.getByText('Live template unchanged', { exact: false }).waitFor({ state: 'visible', timeout: 10_000 });
   await page.getByText('Kickoff live template', { exact: false }).waitFor({ state: 'visible', timeout: 10_000 });
   assert.equal(await page.locator('.react-flow__node').count(), 8, 'Kickoff template should load with 8 nodes');
-  assert.equal(await page.locator('.template-card.starter').count(), 6, 'Studio should expose six local starter templates');
+  assert.equal(await page.locator('.template-card.starter').count(), 7, 'Studio should expose seven local starter templates');
   await page.getByText('OpenClaw Agent', { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
   await page.getByText('x402 Payment', { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
+  await page.getByText('ENS Identity', { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
 }
 
 async function assertStarterTemplates(page) {
@@ -103,6 +104,7 @@ async function assertStarterTemplates(page) {
     ['Escrow Release', 4, 3],
     ['OpenClaw Connector', 5, 4],
     ['x402 Paid Resource', 5, 4],
+    ['ENS Agent Identity', 5, 4],
   ];
 
   for (const [name, nodeCount, edgeCount] of starters) {
@@ -216,8 +218,8 @@ async function dropPalette(page, label, x, y) {
     const title = element.querySelector('.template-name')?.textContent?.trim() || 'Node';
     const sub = element.querySelector('.template-desc')?.textContent?.trim() || '';
     const icon = element.querySelector('.palette-icon')?.textContent?.trim() || '🤖';
-    const kindByTitle = { Agent: 'agent', 'HCS-10 Channel': 'hcs10', 'OpenClaw Agent': 'openclaw', 'x402 Payment': 'x402' };
-    const colorByKind = { agent: '#A78BFA', hcs10: '#00FF87', openclaw: '#F97316', x402: '#22C55E' };
+    const kindByTitle = { Agent: 'agent', 'HCS-10 Channel': 'hcs10', 'OpenClaw Agent': 'openclaw', 'x402 Payment': 'x402', 'ENS Identity': 'ens' };
+    const colorByKind = { agent: '#A78BFA', hcs10: '#00FF87', openclaw: '#F97316', x402: '#22C55E', ens: '#5298FF' };
     const kind = kindByTitle[title] || 'custom';
     return { kind, icon, color: colorByKind[kind] || '#A78BFA', title, sub, detail: '', config: {} };
   });

@@ -10,7 +10,7 @@
 // descriptive kinds used by the built-in kickoff template.
 export const KNOWN_KINDS = new Set([
   // palette
-  'agent', 'hcs10', 'escrow', 'contract', 'approval', 'voice', 'human', 'scheduled', 'uniswap', 'openclaw', 'x402', 'custom',
+  'agent', 'hcs10', 'escrow', 'contract', 'approval', 'voice', 'human', 'scheduled', 'uniswap', 'openclaw', 'x402', 'ens', 'custom',
   // kickoff template descriptive kinds
   'input', 'transport', 'settlement', 'policy', 'output',
 ]);
