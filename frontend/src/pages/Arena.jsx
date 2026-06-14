@@ -13,6 +13,7 @@ function badge(ev) {
   if (ev.type === 'settlement') return ['SETTLED', 'b-deal'];
   if (ev.type === 'reveal') return ['REVEAL', 'b-deal'];
   if (ev.type === 'insurance') return ['🛡 INSURED', 'b-deal'];
+  if (ev.type === 'escrow') return ev.status === 'refunded' ? ['🔒 REFUND', 'b-offer'] : ev.status === 'released' ? ['🔒 RELEASED', 'b-deal'] : ['🔒 ESCROW', 'b-offer'];
   if (ev.type === 'swap') return ev.status === 'failed' ? ['🦄 SWAP ✕', 'b-reject'] : ['🦄 UNISWAP', 'b-deal'];
   if (ev.type === 'swap_status') return ['🦄 …', 'b-thinking'];
   if (ev.type === 'agent_status') return ['···', 'b-thinking'];
@@ -38,6 +39,11 @@ function lineFor(ev) {
       return `Reserve revealed · min ${ev.minPrice} HBAR · accepted ${ev.acceptedPrice} HBAR`;
     case 'insurance':
       return `Package insured on-chain · ${ev.premiumHbar} HBAR premium · covers ${ev.coverageHbar} HBAR${ev.txHash ? ' · ' + String(ev.txHash).slice(0, 12) + '…' : ''}`;
+    case 'escrow': {
+      const verb = ev.status === 'released' ? 'released to seller' : ev.status === 'refunded' ? 'refunded to buyer' : 'locked on-chain';
+      const custody = ev.custody === 'operator-funded' ? ' · operator-funded (demo)' : '';
+      return `Escrow ${verb} · ${ev.amountHbar} HBAR${custody}${ev.txHash ? ' · ' + String(ev.txHash).slice(0, 12) + '…' : ''}`;
+    }
     case 'swap_status':
       return `Converting proceeds → ${ev.tokenOut || 'token'} via Uniswap…`;
     case 'swap':
@@ -56,6 +62,7 @@ function rowTone(ev) {
   if (ev.type === 'settlement') return 'r-accept';
   if (ev.type === 'reveal') return 'r-accept';
   if (ev.type === 'insurance') return 'r-accept';
+  if (ev.type === 'escrow') return ev.status === 'refunded' ? 'r-counter' : 'r-accept';
   if (ev.type === 'swap') return ev.status === 'failed' ? 'r-reject' : 'r-reasoning';
   if (ev.type === 'swap_status') return 'r-reasoning';
   return 'r-status';

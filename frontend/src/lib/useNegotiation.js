@@ -57,6 +57,7 @@ export function useNegotiationFeed() {
               }
               if (ev.type === 'settlement') next.settlement = ev;
               if (ev.type === 'insurance') next.insurance = ev;
+              if (ev.type === 'escrow') next.escrow = ev;
               if (ev.type === 'reveal') next.reveal = ev;
               return { ...n, [ev.negotiationId]: next };
             });
@@ -76,11 +77,11 @@ export function useNegotiationFeed() {
     };
   }, []);
 
-  const submitOffer = useCallback(async ({ negotiationId, price, argument, buyer, authToken, insured }) => {
+  const submitOffer = useCallback(async ({ negotiationId, price, argument, buyer, authToken, insured, escrow }) => {
     const res = await fetch('/api/offer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ negotiationId, price, argument, buyer, authToken, insured }),
+      body: JSON.stringify({ negotiationId, price, argument, buyer, authToken, insured, escrow }),
     });
     if (!res.ok) throw new Error('offer failed');
     return res.json();

@@ -11,6 +11,7 @@ import { escrowClient } from './escrow.js';
 import { settleDeal } from './delegation.js';
 import { crossAssetSettle, crossAssetSettleEnabled } from './uniswap-settle.js';
 import { insureDeal, insuranceEnabled } from './insurance.js';
+import { lockEscrowEvm, releaseEscrowEvm, refundEscrowEvm, escrowEnabled } from './escrow-evm.js';
 
 // Testnet-budget guard: the on-chain settlement moves a symbolic amount no
 // matter what price was negotiated, so demos can't drain the faucet balance.
@@ -56,6 +57,18 @@ export async function handleOffer(offer) {
     negotiationId: offer.negotiationId,
     status: 'evaluating',
   });
+
+  // Optional buyer-funded escrow: lock the (capped) offer amount on-chain BEFORE
+  // the agent decides, so "locked" lands ahead of the verdict. Operator-funded on
+  // the buyer's behalf for the demo (the managed wallet is identity-only today).
+  let escrowLock = null;
+  if (offer.escrow && escrowEnabled()) {
+    escrowLock = await lockEscrowEvm(client, TOPIC, {
+      negotiationId: offer.negotiationId,
+      buyerAddress: offer.buyerAddress,
+      amountHbar: offer.price,
+    });
+  }
 
   const verdict = await evaluateOffer(offer, ctx);
   ctx.history.push({ offer, verdict });
@@ -126,9 +139,17 @@ export async function handleOffer(offer) {
       if (offer.insured && insuranceEnabled()) {
         void insureDeal(client, TOPIC, { negotiationId: offer.negotiationId, coverageHbar: offer.price });
       }
+
+      // Optional escrow: deal accepted → release the locked funds to the seller.
+      if (escrowLock) {
+        void releaseEscrowEvm(client, TOPIC, { negotiationId: offer.negotiationId, amountHbar: escrowLock.amount });
+      }
     } catch (err) {
       console.warn('[agent] settlement failed (verdict stands):', err.message);
     }
+  } else if (verdict.decision === 'reject' && escrowLock) {
+    // Optional escrow: deal rejected → refund the locked funds to the buyer.
+    void refundEscrowEvm(client, TOPIC, { negotiationId: offer.negotiationId, amountHbar: escrowLock.amount });
   }
   return verdict;
 }
@@ -158,6 +179,8 @@ async function loop() {
             price: Number(m.json.price),
             argument: m.json.argument,
             insured: !!m.json.insured,
+            escrow: !!m.json.escrow,
+            buyerAddress: m.json.buyerAddress,
           });
         }
       }

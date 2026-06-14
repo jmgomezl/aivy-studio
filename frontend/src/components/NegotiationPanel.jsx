@@ -309,6 +309,27 @@ export default function NegotiationPanel({
         </div>
       )}
 
+      {n?.escrow && (() => {
+        const es = i18n.language === 'es';
+        const label =
+          n.escrow.status === 'released' ? (es ? 'Garantía liberada al vendedor' : 'Escrow released to seller')
+          : n.escrow.status === 'refunded' ? (es ? 'Garantía reembolsada al comprador' : 'Escrow refunded to buyer')
+          : (es ? 'Fondos en garantía' : 'Funds in escrow');
+        return (
+          <div className="esc-badge">
+            <span className="esc-title">🔒 {label}</span>
+            <span className="esc-meta">
+              {n.escrow.amountHbar} HBAR · {es ? 'on-chain' : 'on-chain'}{n.escrow.custody === 'operator-funded' ? (es ? ' · fondeado por el operador (demo)' : ' · operator-funded (demo)') : ''}
+            </span>
+            {n.escrow.txHash && (
+              <a className="esc-tx" href={`https://hashscan.io/testnet/transaction/${n.escrow.txHash}`} target="_blank" rel="noreferrer">
+                on-chain ↗
+              </a>
+            )}
+          </div>
+        );
+      })()}
+
       {n?.reveal && (() => {
         const g = shippingGuide({
           negotiationId: n.negotiationId,

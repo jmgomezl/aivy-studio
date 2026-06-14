@@ -589,6 +589,16 @@ function liveEventLine(event, index) {
         text: `${event.premiumHbar} HBAR premium · covers ${event.coverageHbar} HBAR${event.txHash ? ' · ' + String(event.txHash).slice(0, 14) + '…' : ''}`,
         meta: tail,
       };
+    case 'escrow': {
+      const tag = event.status === 'released' ? 'ESCROW · RELEASED' : event.status === 'refunded' ? 'ESCROW · REFUND' : 'ESCROW · LOCKED';
+      const tone = event.status === 'refunded' ? 'yellow' : 'green';
+      const custody = event.custody === 'operator-funded' ? ' · operator-funded' : '';
+      return {
+        id, icon: '🔒', tag, tone,
+        text: `${event.amountHbar} HBAR${custody}${event.txHash ? ' · ' + String(event.txHash).slice(0, 14) + '…' : ''}`,
+        meta: tail,
+      };
+    }
     default:
       return { id, icon: '•', tag: String(event.type || 'event'), tone: 'muted', text: '', meta: tail };
   }
@@ -761,7 +771,7 @@ export default function Studio() {
   // This is what makes "Activate" show actual outputs, not just node colors.
   const consoleLines = useMemo(() => {
     if (isKickoffWorkflow) {
-      const tracked = new Set(['offer', 'agent_status', 'agent_reasoning', 'agent_verdict', 'settlement', 'reveal', 'swap', 'swap_status', 'insurance']);
+      const tracked = new Set(['offer', 'agent_status', 'agent_reasoning', 'agent_verdict', 'settlement', 'reveal', 'swap', 'swap_status', 'insurance', 'escrow']);
       return feed.filter((e) => tracked.has(e.type)).map((e, i) => liveEventLine(e, i));
     }
     const toneByStatus = { done: 'green', current: 'yellow', queued: 'muted' };
@@ -864,6 +874,7 @@ export default function Studio() {
       hot.add('voice');
       if (lastEvent.decision === 'accept') hot.add('escrow');
     }
+    if (lastEvent?.type === 'escrow' || lastEvent?.type === 'settlement') hot.add('escrow');
     return nodes.map((n) => ({ ...n, data: { ...n.data, live: hot.has(n.id) } }));
   }, [nodes, active, isKickoffWorkflow, lastEvent, simulationHot.nodes]);
 

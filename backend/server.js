@@ -99,6 +99,10 @@ function applyMessage(m) {
     case 'insurance':
       n.insurance = event;
       break;
+    case 'escrow':
+      // locked → released/refunded; keep the latest leg on the negotiation.
+      n.escrow = event;
+      break;
     case 'reveal': {
       n.reveal = event;
       // Deal closed → mark the active listing SOLD with the accepted price.
@@ -124,7 +128,7 @@ app.get('/api/negotiations/:id', (req, res) => {
 // Judge/buyer submits an offer: published straight to the HCS-10 topic.
 app.post('/api/offer', async (req, res) => {
   try {
-    const { negotiationId, price, argument, buyer, authToken, insured } = req.body || {};
+    const { negotiationId, price, argument, buyer, authToken, insured, escrow } = req.body || {};
     if (!negotiationId || !Number(price) || !argument?.trim()) {
       return res.status(400).json({ error: 'negotiationId, price and argument are required' });
     }
@@ -143,6 +147,9 @@ app.post('/api/offer', async (req, res) => {
           price: Number(price),
           argument: argument.trim().slice(0, 1000),
           ...(insured ? { insured: true } : {}),
+          // Escrow opt-in: carry the buyer's managed-wallet address so the agent
+          // can refund it on-chain on a reject (operator-funded lock for the demo).
+          ...(escrow ? { escrow: true, ...(session?.walletEvm ? { buyerAddress: session.walletEvm } : {}) } : {}),
         })
       )
       .execute(operator);

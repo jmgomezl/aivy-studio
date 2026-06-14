@@ -29,6 +29,7 @@ export default function Offer() {
   const [activeItem, setActiveItem] = useState(null);
   const [tgAuth, setTgAuth] = useState(null);
   const [insured, setInsured] = useState(false);
+  const [escrow, setEscrow] = useState(false);
 
   useEffect(() => {
     fetch('/api/world/config').then((r) => r.json()).then((c) => setWorldEnabled(!!c.enabled)).catch(() => {});
@@ -140,13 +141,20 @@ export default function Offer() {
         item={activeItem}
         buyerLabel={buyer}
         inputEnabled={mode === 'human' && (!verifyRequired || verified)}
-        onSubmitOffer={(price, argument) => submitOffer({ negotiationId, price, argument, buyer, authToken: tgAuth?.token, insured })}
+        onSubmitOffer={(price, argument) => submitOffer({ negotiationId, price, argument, buyer, authToken: tgAuth?.token, insured, escrow })}
       />
 
       {mode === 'human' && !n?.verdict && (!verifyRequired || verified) && (
         <label style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '10px 14px 0', cursor: 'pointer', fontSize: 12.5, color: 'var(--text)' }}>
           <input type="checkbox" checked={insured} onChange={(e) => setInsured(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--accent)' }} />
           <span>🛡 {i18n.language === 'es' ? 'Asegurar el paquete (1 HBAR · cubre daño/pérdida)' : 'Insure the package (1 HBAR · covers damage/loss)'}</span>
+        </label>
+      )}
+
+      {mode === 'human' && !n?.verdict && (!verifyRequired || verified) && (
+        <label style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '8px 14px 0', cursor: 'pointer', fontSize: 12.5, color: 'var(--text)' }}>
+          <input type="checkbox" checked={escrow} onChange={(e) => setEscrow(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--accent)' }} />
+          <span>🔒 {i18n.language === 'es' ? 'Bloquear fondos en garantía (on-chain · libera al cerrar, reembolsa si rechazan)' : 'Lock funds in escrow (on-chain · released on close, refunded if rejected)'}</span>
         </label>
       )}
 
