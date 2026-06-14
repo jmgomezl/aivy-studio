@@ -287,6 +287,21 @@ export default function NegotiationPanel({
         </div>
       )}
 
+      {/* High-value close → human-in-the-loop Ledger approval, wired to THIS deal.
+          Opens in a new tab so the negotiation stays open; the approval flows back
+          here as the Ledger-approved badge over the live feed. */}
+      {dealClosed && !n?.ledgerApproval && Number(lastOffer?.price) >= 100 && (
+        <a
+          className="ledger-cta"
+          href={`/ledger?id=${encodeURIComponent(n.negotiationId)}&amount=${lastOffer?.price}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <span className="ledger-cta-main">🔐 {i18n.language === 'es' ? `Trato de alto valor (${lastOffer?.price} USD) — aprobar en Ledger` : `High-value deal (${lastOffer?.price} USD) — approve on Ledger`} ↗</span>
+          <span className="ledger-cta-sub">{i18n.language === 'es' ? 'firma física requerida · Chrome de escritorio · vuelve aquí al firmar' : 'physical Clear-Sign required · desktop Chrome · the approval returns here'}</span>
+        </a>
+      )}
+
       {/* ENDED — the autonomous buyer agent stopped without a deal (inconclusive). */}
       {endedNoDeal && (() => {
         const es = i18n.language === 'es';

@@ -88,6 +88,11 @@ export default function LedgerApprove({ negotiationId, amountUsd = 500, recipien
         <div className="ledger-done">
           ✅ Ledger-approved & broadcast ·{' '}
           <a href={result.explorer} target="_blank" rel="noreferrer">{result.hash.slice(0, 14)}… ↗</a>
+          {negotiationId && (
+            <div style={{ marginTop: 6, fontSize: 11, color: 'var(--muted)' }}>
+              🔗 Linked to deal <code>{negotiationId}</code> — it now shows “Ledger-approved” in the negotiation. You can close this tab.
+            </div>
+          )}
         </div>
       )}
 

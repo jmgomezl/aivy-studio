@@ -179,6 +179,9 @@
 .ledgerapp-title { font-size:12px; font-weight:800; color:#cfd3e0; }
 .ledgerapp-meta { font-family:var(--mono); font-size:10px; color:var(--muted); }
 .ledgerapp-tx { margin-left:auto; font-family:var(--mono); font-size:9px; color:#cfd3e0; text-decoration:none; border:1px solid rgba(180,180,200,.4); border-radius:5px; padding:2px 7px; }
+.ledger-cta { display:flex; flex-direction:column; gap:3px; margin:10px 16px 0; padding:11px 13px; border:1px solid rgba(130,89,239,.45); border-radius:10px; background:color-mix(in srgb,#8259EF 13%,transparent); text-decoration:none; }
+.ledger-cta-main { font-size:12.5px; font-weight:800; color:#A78BFA; }
+.ledger-cta-sub { font-family:var(--mono); font-size:9px; color:var(--muted); }
 /* Live conversational chat with the seller agent */
 .seller-chat { border:1px solid var(--border); border-radius:12px; background:var(--card); overflow:hidden; }
 .sc-head { padding:8px 12px; font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); border-bottom:1px solid var(--border); }
