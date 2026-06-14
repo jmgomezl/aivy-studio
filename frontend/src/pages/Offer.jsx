@@ -262,7 +262,15 @@ export default function Offer() {
           {t('newNegotiation')}
         </button>
       )}
-      <div style={{ padding: '8px 14px', textAlign: 'center', fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)' }}>
+      <div style={{ padding: '8px 14px 2px', textAlign: 'center' }}>
+        <a href="/ledger" style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)', textDecoration: 'none' }}>
+          🔐 {i18n.language === 'es' ? 'Aprobación con Ledger' : 'Ledger approval'} ↗
+        </a>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'var(--muted)', marginTop: 2 }}>
+          {i18n.language === 'es' ? 'firma de alto valor · solo Chrome de escritorio' : 'high-value signing · desktop Chrome only'}
+        </div>
+      </div>
+      <div style={{ padding: '4px 14px 8px', textAlign: 'center', fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)' }}>
         {t('onChainProof')}
       </div>
     </div>

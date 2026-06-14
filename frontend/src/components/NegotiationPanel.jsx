@@ -143,7 +143,7 @@ export default function NegotiationPanel({
         <div className="neg-eyebrow">{t('liveNegotiation')}</div>
         <div className="neg-item-row">
           <div className="neg-emoji" style={item?.photoUrl ? { padding: 0, overflow: 'hidden' } : undefined}>
-            {item?.photoUrl ? <img src={assetUrl(item.photoUrl)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '☕'}
+            {item?.photoUrl ? <img src={assetUrl(item.photoUrl)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📦'}
           </div>
           <div>
             <div className="neg-item-name">{item?.name || t('coffeeName')}</div>
