@@ -131,6 +131,9 @@ export default function Offer() {
           <div className="logo-dot" />kickoff<span>.bot</span>
         </a>
         <div className="nav-right">
+          <a className="btn-ghost" href="/" style={{ padding: '4px 10px', fontSize: 11 }}>
+            🛒 {i18n.language === 'es' ? 'Productos' : 'Browse'}
+          </a>
           <a className="btn-ghost" href="/sell" style={{ padding: '4px 10px', fontSize: 11 }}>
             🏷️ {i18n.language === 'es' ? 'Vender' : 'Sell'}
           </a>
