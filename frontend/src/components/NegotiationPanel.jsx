@@ -361,7 +361,7 @@ export default function NegotiationPanel({
         const sym = (done && n.swap.tokenOut) || (n?.swapStatus && n.swapStatus.tokenOut) || 'USDC';
         return (
           <div className={`uni-badge ${failed ? 'uni-fail' : ''}`}>
-            <span className="uni-title">🦄 {failed ? (es ? 'Conversión Uniswap falló' : 'Uniswap conversion failed') : !done ? (es ? `Convirtiendo a ${sym}…` : `Converting to ${sym}…`) : (es ? `Pago en ${sym} vía Uniswap` : `Paid out in ${sym} via Uniswap`)}</span>
+            <span className="uni-title">🦄 {failed ? (es ? 'Conversión Uniswap falló' : 'Uniswap conversion failed') : !done ? (es ? `Convirtiendo a ${sym}…` : `Converting to ${sym}…`) : (es ? 'Pago cross-asset vía Uniswap' : 'Cross-asset payout via Uniswap')}</span>
             <span className="uni-meta">
               {failed
                 ? (es ? 'la liquidación en KUSD se mantiene' : 'KUSD settlement stands')
