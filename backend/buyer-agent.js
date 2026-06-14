@@ -92,12 +92,29 @@ export function deployBuyerAgent({ client, topicId, state, negotiationId, strate
     return null;
   }
 
+  // When the buyer agent ends WITHOUT a deal, announce it on-chain so the UI can
+  // show an honest "ended · no deal" instead of "still negotiating" forever.
+  async function publishDone(status, finalPrice) {
+    try {
+      const tx = await new TopicMessageSubmitTransaction()
+        .setTopicId(topicId)
+        .setMessage(JSON.stringify({
+          p: 'hcs-10', op: 'message', type: 'buyer_done',
+          negotiationId, buyer: `agent:${strategy}`, status, finalPrice: finalPrice ?? null,
+        }))
+        .execute(client);
+      await tx.getReceipt(client);
+    } catch (e) { console.warn('[buyer-agent] publishDone failed:', e.message); }
+  }
+
   async function run() {
     const steps = STRATEGIES[strategy];
     const product = activeProduct();
+    let lastPrice = 0;
     for (let i = 0; i < steps.length; i++) {
       session.round = i + 1;
       const price = Math.max(1, Math.round(maxBudget * steps[i].f));
+      lastPrice = price;
       console.log(`[buyer-agent:${strategy}] round ${session.round}: ${price} HBAR`);
       const seq = await publishOffer(price, steps[i].arg(product));
       const verdict = await waitVerdictAfter(seq);
@@ -118,6 +135,8 @@ export function deployBuyerAgent({ client, topicId, state, negotiationId, strate
       await sleep(2500); // theatrical pacing between rounds
     }
     if (session.status === 'running') session.status = 'done';
+    // No deal → publish a terminal event so the negotiation reads as concluded.
+    if (session.status !== 'closed') await publishDone(session.status, lastPrice);
     setTimeout(() => sessions.delete(negotiationId), 60_000);
   }
 }

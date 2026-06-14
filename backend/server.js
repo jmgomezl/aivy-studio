@@ -115,6 +115,11 @@ function applyMessage(m) {
       // a high-value settlement Clear-Signed on a physical Ledger (HITL).
       n.ledgerApproval = event;
       break;
+    case 'buyer_done':
+      // the autonomous buyer agent concluded without a deal — negotiation ended.
+      n.buyerEnded = event;
+      if (n.status !== 'closed') n.status = 'ended';
+      break;
     case 'swap_status':
       n.swapStatus = event;
       break;

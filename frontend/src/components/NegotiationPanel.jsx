@@ -278,8 +278,36 @@ export default function NegotiationPanel({
         </div>
       )}
 
+      {/* ENDED — the autonomous buyer agent stopped without a deal (inconclusive). */}
+      {n?.buyerEnded && !dealClosed && !n?.reveal && (() => {
+        const es = i18n.language === 'es';
+        const st = n.buyerEnded.status;
+        const why = st === 'budget-exceeded'
+          ? (es ? 'el comprador alcanzó su presupuesto máximo' : 'the buyer hit its max budget')
+          : st === 'timeout'
+          ? (es ? 'la negociación expiró' : 'the negotiation timed out')
+          : (es ? 'el comprador no llegó al mínimo del vendedor' : 'the buyer couldn’t reach the seller’s minimum');
+        return (
+          <div className="verdict live declined">
+            <div className="verdict-live-head" style={{ color: 'var(--muted)' }}>
+              <span className="verdict-live-dot" style={{ background: 'var(--muted)' }} />
+              {es ? 'NEGOCIACIÓN TERMINADA · SIN TRATO' : 'NEGOTIATION ENDED · NO DEAL'}
+            </div>
+            <div className="verdict-title" style={{ color: 'var(--text)', fontSize: 16 }}>
+              {es ? 'Los agentes terminaron sin acuerdo' : 'The agents finished without a deal'}
+            </div>
+            <div className="verdict-reason">
+              {why}{n.buyerEnded.finalPrice ? ` · ${es ? 'última oferta' : 'last offer'} ${n.buyerEnded.finalPrice} USD` : ''}.
+            </div>
+            <a className="verdict-tx" href={`https://hashscan.io/testnet/topic/0.0.9217269`} target="_blank" rel="noreferrer">
+              {t('viewOnHashscan')}
+            </a>
+          </div>
+        );
+      })()}
+
       {/* COUNTER / holding-out — a genuinely partial round: the agent wants more. */}
-      {verdict && !dealClosed && !n?.reveal && verdict.decision === 'counter' && (
+      {verdict && !dealClosed && !n?.reveal && !n?.buyerEnded && verdict.decision === 'counter' && (
         <div className={`verdict live ${negotiationLive ? 'pulsing' : ''}`}>
           <div className="verdict-live-head">
             <span className="verdict-live-dot" />
@@ -296,7 +324,7 @@ export default function NegotiationPanel({
       )}
 
       {/* REJECT — the agent declined THIS offer. A decision, not "holding out". */}
-      {verdict && !dealClosed && !n?.reveal && verdict.decision !== 'counter' && (
+      {verdict && !dealClosed && !n?.reveal && !n?.buyerEnded && verdict.decision !== 'counter' && (
         <div className="verdict live declined">
           <div className="verdict-live-head" style={{ color: 'var(--red)' }}>
             <span className="verdict-live-dot" style={{ background: 'var(--red)' }} />

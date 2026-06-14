@@ -62,6 +62,7 @@ export function useNegotiationFeed() {
               if (ev.type === 'swap_status') next.swapStatus = ev;
               if (ev.type === 'swap') next.swap = ev;
               if (ev.type === 'ledger_approval') next.ledgerApproval = ev;
+              if (ev.type === 'buyer_done') { next.buyerEnded = ev; if (next.status !== 'closed') next.status = 'ended'; }
               if (ev.type === 'reveal') next.reveal = ev;
               return { ...n, [ev.negotiationId]: next };
             });
