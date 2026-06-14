@@ -309,6 +309,25 @@ export default function NegotiationPanel({
         </div>
       )}
 
+      {n?.payment && (() => {
+        const es = i18n.language === 'es';
+        return (
+          <div className="pay-badge">
+            <span className="pay-title">💵 {es ? 'Pago real liquidado' : 'Real payment settled'}</span>
+            <span className="pay-amt">{Number(n.payment.amountUsd).toLocaleString()} KUSD</span>
+            <span className="pay-meta">
+              {es ? 'financiado por el comprador' : 'buyer-funded'} · {String(n.payment.from)} → {String(n.payment.to)}
+              {n.payment.capped ? (es ? ' · limitado al saldo' : ' · capped to balance') : ''}
+            </span>
+            {n.payment.txId && (
+              <a className="pay-tx" href={`https://hashscan.io/testnet/transaction/${encodeURIComponent(n.payment.txId)}`} target="_blank" rel="noreferrer">
+                on-chain ↗
+              </a>
+            )}
+          </div>
+        );
+      })()}
+
       {n?.escrow && (() => {
         const es = i18n.language === 'es';
         const label =

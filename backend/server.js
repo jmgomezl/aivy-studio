@@ -104,6 +104,10 @@ function applyMessage(m) {
       // locked → released/refunded; keep the latest leg on the negotiation.
       n.escrow = event;
       break;
+    case 'payment':
+      // real buyer-funded KUSD settlement of the negotiated amount.
+      n.payment = event;
+      break;
     case 'reveal': {
       n.reveal = event;
       // Deal closed → mark the active listing SOLD with the accepted price.
@@ -148,9 +152,10 @@ app.post('/api/offer', async (req, res) => {
           price: Number(price),
           argument: argument.trim().slice(0, 1000),
           ...(insured ? { insured: true } : {}),
-          // Escrow opt-in: carry the buyer's managed-wallet address so the agent
-          // can refund it on-chain on a reject (operator-funded lock for the demo).
-          ...(escrow ? { escrow: true, ...(session?.walletEvm ? { buyerAddress: session.walletEvm } : {}) } : {}),
+          ...(escrow ? { escrow: true } : {}),
+          // Carry the buyer's funded managed-wallet address so the agent can settle
+          // the real amount in KUSD (and refund escrow) buyer→seller on close.
+          ...(session?.walletEvm ? { buyerAddress: session.walletEvm } : {}),
         })
       )
       .execute(operator);

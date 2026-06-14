@@ -12,6 +12,7 @@ import { settleDeal } from './delegation.js';
 import { crossAssetSettle, crossAssetSettleEnabled } from './uniswap-settle.js';
 import { insureDeal, insuranceEnabled } from './insurance.js';
 import { lockEscrowEvm, releaseEscrowEvm, refundEscrowEvm, escrowEnabled } from './escrow-evm.js';
+import { payRealKusd, kusdPaymentEnabled } from './payment-kusd.js';
 
 // Testnet-budget guard: the on-chain settlement moves a symbolic amount no
 // matter what price was negotiated, so demos can't drain the faucet balance.
@@ -39,6 +40,7 @@ function refreshActiveListing() {
         ctx.minPrice = Number(a.minPriceHbar);
         ctx.productName = a.name || ctx.productName;
         ctx.activeListingId = a.id;
+        ctx.sellerWalletEvm = a.sellerWalletEvm || null;
       }
     }
   } catch {}
@@ -143,6 +145,18 @@ export async function handleOffer(offer) {
       // Optional escrow: deal accepted → release the locked funds to the seller.
       if (escrowLock) {
         void releaseEscrowEvm(client, TOPIC, { negotiationId: offer.negotiationId, amountHbar: escrowLock.amount });
+      }
+
+      // Real buyer-funded settlement: move the negotiated amount in KUSD from the
+      // buyer's funded wallet → the seller's. Fires only when both are funded
+      // managed wallets; otherwise skips quietly (the capped HBAR settle stands).
+      if (kusdPaymentEnabled()) {
+        void payRealKusd(client, TOPIC, {
+          negotiationId: offer.negotiationId,
+          buyerAddress: offer.buyerAddress,
+          sellerWalletEvm: ctx.sellerWalletEvm,
+          amountUsd: offer.price,
+        });
       }
     } catch (err) {
       console.warn('[agent] settlement failed (verdict stands):', err.message);

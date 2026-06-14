@@ -133,6 +133,11 @@
 .esc-title { font-size:12px; font-weight:700; color:#FFB800; }
 .esc-meta { font-family:var(--mono); font-size:10px; color:var(--muted); }
 .esc-tx { margin-left:auto; font-family:var(--mono); font-size:9px; color:#FFB800; text-decoration:none; border:1px solid rgba(255,184,0,.32); border-radius:5px; padding:2px 7px; }
+.pay-badge { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:10px 16px 0; padding:9px 12px; border:1px solid rgba(63,224,143,.4); border-radius:9px; background:color-mix(in srgb, #3FE08F 11%, transparent); }
+.pay-title { font-size:12px; font-weight:800; color:#3FE08F; }
+.pay-amt { font-family:var(--mono); font-size:12px; font-weight:700; color:var(--text); }
+.pay-meta { font-family:var(--mono); font-size:9px; color:var(--muted); width:100%; }
+.pay-tx { margin-left:auto; font-family:var(--mono); font-size:9px; color:#3FE08F; text-decoration:none; border:1px solid rgba(63,224,143,.4); border-radius:5px; padding:2px 7px; }
 /* Live conversational chat with the seller agent */
 .seller-chat { border:1px solid var(--border); border-radius:12px; background:var(--card); overflow:hidden; }
 .sc-head { padding:8px 12px; font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); border-bottom:1px solid var(--border); }

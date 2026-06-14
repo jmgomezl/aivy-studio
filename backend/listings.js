@@ -153,7 +153,7 @@ export async function createListing({ name, description, category, minPriceHbar,
   persist();
 
   // Tell the agent which reserve to defend (server-only file, same box).
-  writeFileSync(ACTIVE_FILE, JSON.stringify({ id, name, minPriceHbar: Number(minPriceHbar), commitHash, commitmentTx, onChain, requireHumanVerification: !!requireHumanVerification }));
+  writeFileSync(ACTIVE_FILE, JSON.stringify({ id, name, minPriceHbar: Number(minPriceHbar), commitHash, commitmentTx, onChain, requireHumanVerification: !!requireHumanVerification, sellerWalletEvm: sellerWalletEvm || null }));
 
   return listing; // public — no minPrice/salt
 }

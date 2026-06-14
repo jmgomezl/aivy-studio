@@ -58,6 +58,7 @@ export function useNegotiationFeed() {
               if (ev.type === 'settlement') next.settlement = ev;
               if (ev.type === 'insurance') next.insurance = ev;
               if (ev.type === 'escrow') next.escrow = ev;
+              if (ev.type === 'payment') next.payment = ev;
               if (ev.type === 'reveal') next.reveal = ev;
               return { ...n, [ev.negotiationId]: next };
             });
