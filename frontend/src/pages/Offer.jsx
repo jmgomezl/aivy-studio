@@ -239,6 +239,31 @@ export default function Offer() {
               <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 5 }}>
                 💬 {i18n.language === 'es' ? 'Instrucciones (opcional) — enriquece al agente' : 'Instructions (optional) — coach your agent'}
               </div>
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 6 }}>
+                {(i18n.language === 'es'
+                  ? [
+                      ['🛒 Cazador de ofertas', 'Abre bajo (~50% del presupuesto) y sube despacio. Menciona que comparaste otros listados similares. Nunca pases del presupuesto.'],
+                      ['💝 Coleccionista sentimental', 'Lidera con una historia personal y emotiva de por qué este artículo te importa. El precio es secundario, pero mantente dentro del presupuesto.'],
+                      ['🧱 Tope firme', 'Fija un tope claro desde el inicio y mantenlo. Sé amable pero inamovible en el precio.'],
+                      ['⚡ Cierre rápido', 'Ofrece cerca del tope de tu presupuesto de inmediato con una razón fuerte para cerrar ya.'],
+                    ]
+                  : [
+                      ['🛒 Bargain hunter', 'Open low (~50% of budget) and escalate slowly. Mention you compared other similar listings. Never exceed the budget.'],
+                      ['💝 Sentimental collector', 'Lead with a personal, emotional story about why this item matters to you. Price is secondary, but stay within budget.'],
+                      ['🧱 Firm floor', 'State a firm ceiling early and hold it. Be polite but unmovable on price.'],
+                      ['⚡ Quick close', 'Offer near the top of your budget right away with a strong reason to close fast.'],
+                    ]
+                ).map(([label, text]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setAgentInstructions(text)}
+                    style={{ padding: '3px 8px', borderRadius: 14, fontSize: 10, cursor: 'pointer', border: '1px solid var(--border)', background: 'transparent', color: 'var(--muted)' }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
               <textarea
                 rows={2}
                 value={agentInstructions}
