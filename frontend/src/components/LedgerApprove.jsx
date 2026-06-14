@@ -28,8 +28,11 @@ export default function LedgerApprove({ negotiationId, amountUsd = 500, recipien
     try {
       const s = await connectLedger(setPrompt);
       setSession(s);
-      setPrompt('Verify the address on your Ledger…');
-      const addr = await getLedgerAddress(s, { verify: true, onPrompt: setPrompt });
+      setPrompt('Deriving address…');
+      // Derive WITHOUT requiring an on-device confirmation here — the real device
+      // interaction (and the security) is the Clear-Sign step. Verifying the
+      // address on-device during connect was the step that could hang.
+      const addr = await getLedgerAddress(s, { verify: false, onPrompt: setPrompt });
       setAddress(addr);
       setPrompt(null);
     } catch (e) { setError(e.message || 'connection failed'); }

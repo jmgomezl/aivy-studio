@@ -18,6 +18,8 @@ function runAction({ observable }, onPrompt) {
     const { DeviceActionStatus, UserInteractionRequired } = await import('@ledgerhq/device-management-kit');
     const sub = observable.subscribe({
       next: (state) => {
+        // Diagnostics — visible in the browser console to pinpoint any hang.
+        try { console.log('[ledger] state', state?.status, state?.intermediateValue?.requiredUserInteraction ?? ''); } catch {}
         if (state.status === DeviceActionStatus.Pending) {
           const need = state.intermediateValue?.requiredUserInteraction;
           const map = {
