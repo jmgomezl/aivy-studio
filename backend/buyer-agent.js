@@ -52,10 +52,11 @@ export function getSession(negotiationId) {
  * from the shared backend state (chain-sourced). Returns immediately; progress
  * is visible through the normal event stream.
  */
-export function deployBuyerAgent({ client, topicId, state, negotiationId, strategy, maxBudget }) {
+export function deployBuyerAgent({ client, topicId, state, negotiationId, strategy, maxBudget, instructions }) {
   if (!STRATEGIES[strategy]) throw new Error(`unknown strategy: ${strategy}`);
   if (sessions.has(negotiationId)) throw new Error('buyer agent already active for this negotiation');
-  const session = { strategy, round: 0, status: 'running' };
+  const instr = (instructions || '').trim().slice(0, 600);
+  const session = { strategy, round: 0, status: 'running', instructions: instr || null };
   sessions.set(negotiationId, session);
   run().catch((err) => {
     console.error('[buyer-agent]', err.message);
@@ -107,16 +108,70 @@ export function deployBuyerAgent({ client, topicId, state, negotiationId, strate
     } catch (e) { console.warn('[buyer-agent] publishDone failed:', e.message); }
   }
 
+  // LLM-driven offer — honors the user's free-text instructions (goal price,
+  // floor, persona, tactics), the budget ceiling, the persona, and reacts to the
+  // seller's last response. Falls back to the deterministic playbook on failure.
+  async function generateOffer({ round, totalRounds, prevVerdict, lastPrice, product }) {
+    const sys =
+      `You are an autonomous BUYER agent negotiating to BUY "${product}". ` +
+      `Reply with ONLY compact JSON: {"price": <integer USD>, "argument": "<one short persuasive sentence to the seller>"}.\n` +
+      `Hard rules:\n` +
+      `- price is an integer in USD and MUST NOT exceed ${maxBudget} (your absolute max budget).\n` +
+      `- Escalate gradually across rounds; this is round ${round} of ${totalRounds}, only approach your max near the final round.\n` +
+      `- Persona/tone: ${strategy}.\n` +
+      `- Obey the buyer's own instructions precisely (target/goal price, floor, ceiling, tactics, persona): "${instr || 'none'}".\n` +
+      `- argument <= 240 characters.`;
+    const user = prevVerdict
+      ? `The seller did NOT accept your last offer of ${lastPrice} USD. Seller response: ${prevVerdict.decision}` +
+        `${prevVerdict.counterPrice ? ` (counter ${prevVerdict.counterPrice})` : ''} — "${(prevVerdict.spokenVerdict || '').slice(0, 200)}". Make your next offer.`
+      : `Make your opening offer.`;
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+      body: JSON.stringify({
+        model: process.env.LLM_MODEL || 'gpt-4o',
+        temperature: 0.7,
+        max_tokens: 160,
+        response_format: { type: 'json_object' },
+        messages: [{ role: 'system', content: sys }, { role: 'user', content: user }],
+      }),
+    });
+    const data = await res.json();
+    const out = JSON.parse(data.choices[0].message.content);
+    let price = Math.round(Number(out.price));
+    if (!Number.isFinite(price) || price < 1) price = 1;
+    price = Math.min(price, maxBudget);
+    return { price, argument: String(out.argument || '').slice(0, 1000) };
+  }
+
   async function run() {
     const steps = STRATEGIES[strategy];
     const product = activeProduct();
+    const useLLM = !!(instr && process.env.OPENAI_API_KEY);
+    const totalRounds = useLLM ? 4 : steps.length;
     let lastPrice = 0;
-    for (let i = 0; i < steps.length; i++) {
+    let prevVerdict = null;
+    for (let i = 0; i < totalRounds; i++) {
       session.round = i + 1;
-      const price = Math.max(1, Math.round(maxBudget * steps[i].f));
+      let price, argument;
+      if (useLLM) {
+        try {
+          ({ price, argument } = await generateOffer({ round: i + 1, totalRounds, prevVerdict, lastPrice, product }));
+        } catch (e) {
+          console.warn('[buyer-agent] LLM offer failed, falling back:', e.message);
+          const step = steps[Math.min(i, steps.length - 1)];
+          price = Math.max(1, Math.round(maxBudget * step.f));
+          argument = step.arg(product);
+        }
+      } else {
+        const step = steps[i];
+        price = Math.max(1, Math.round(maxBudget * step.f));
+        argument = step.arg(product);
+      }
+      price = Math.max(1, Math.min(price, maxBudget));
       lastPrice = price;
-      console.log(`[buyer-agent:${strategy}] round ${session.round}: ${price} HBAR`);
-      const seq = await publishOffer(price, steps[i].arg(product));
+      console.log(`[buyer-agent:${strategy}${useLLM ? '+instr' : ''}] round ${session.round}: ${price} USD`);
+      const seq = await publishOffer(price, argument);
       const verdict = await waitVerdictAfter(seq);
       if (!verdict) {
         session.status = 'timeout';
@@ -126,12 +181,13 @@ export function deployBuyerAgent({ client, topicId, state, negotiationId, strate
         session.status = 'closed';
         break;
       }
+      prevVerdict = verdict;
       // counter above budget ends the negotiation honestly; otherwise escalate
-      if (verdict.decision === 'counter' && verdict.counterPrice > maxBudget && i === steps.length - 1) {
+      if (verdict.decision === 'counter' && verdict.counterPrice > maxBudget && i === totalRounds - 1) {
         session.status = 'budget-exceeded';
         break;
       }
-      session.status = i === steps.length - 1 ? 'rejected' : 'running';
+      session.status = i === totalRounds - 1 ? 'rejected' : 'running';
       await sleep(2500); // theatrical pacing between rounds
     }
     if (session.status === 'running') session.status = 'done';

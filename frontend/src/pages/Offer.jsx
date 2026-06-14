@@ -23,6 +23,7 @@ export default function Offer() {
   const [mode, setMode] = useState('human');
   const [maxBudget, setMaxBudget] = useState(20);
   const [strategy, setStrategy] = useState('charming');
+  const [agentInstructions, setAgentInstructions] = useState('');
   const [agentStatus, setAgentStatus] = useState(null);
   const [humanVerified, setHumanVerified] = useState(false);
   const [worldToken, setWorldToken] = useState(null);
@@ -77,7 +78,7 @@ export default function Offer() {
       const res = await fetch('/api/deploy-buyer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ negotiationId, strategy, maxBudget: budget }),
+        body: JSON.stringify({ negotiationId, strategy, maxBudget: budget, instructions: agentInstructions }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
     } catch (err) {
@@ -232,6 +233,23 @@ export default function Offer() {
                     {t(s)}
                   </button>
                 ))}
+              </div>
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 5 }}>
+                💬 {i18n.language === 'es' ? 'Instrucciones (opcional) — enriquece al agente' : 'Instructions (optional) — coach your agent'}
+              </div>
+              <textarea
+                rows={2}
+                value={agentInstructions}
+                onChange={(e) => setAgentInstructions(e.target.value)}
+                placeholder={i18n.language === 'es'
+                  ? 'p.ej. apunta a 12, no pases de 18, sé muy emocional sobre el vinilo de mi padre…'
+                  : 'e.g. aim for 12, never go above 18, be very emotional about my late father’s vinyl…'}
+                style={{ width: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 7, color: 'var(--text)', fontSize: 12, padding: '8px 10px', resize: 'vertical', fontFamily: 'inherit' }}
+              />
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 8.5, color: 'var(--muted)', marginTop: 3 }}>
+                {i18n.language === 'es' ? 'el agente usa GPT-4o para ofertar según tus reglas (tope: presupuesto máx.)' : 'the agent uses GPT-4o to bid by your rules (hard cap: max budget)'}
               </div>
             </div>
           </div>

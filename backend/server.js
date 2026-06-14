@@ -202,7 +202,7 @@ app.post('/api/offer', async (req, res) => {
 // Deploy an autonomous buyer agent for a negotiation.
 app.post('/api/deploy-buyer', (req, res) => {
   try {
-    const { negotiationId, strategy = 'charming', maxBudget } = req.body || {};
+    const { negotiationId, strategy = 'charming', maxBudget, instructions } = req.body || {};
     if (!negotiationId || !Number(maxBudget)) {
       return res.status(400).json({ error: 'negotiationId and maxBudget are required' });
     }
@@ -213,6 +213,7 @@ app.post('/api/deploy-buyer', (req, res) => {
       negotiationId,
       strategy,
       maxBudget: Number(maxBudget),
+      instructions,
     });
     res.json({ ok: true, session });
   } catch (err) {
