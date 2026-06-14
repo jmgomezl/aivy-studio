@@ -265,7 +265,7 @@ app.get('/api/listings', (_, res) => res.json({ listings: getPublicListings(), a
 
 app.post('/api/listings', async (req, res) => {
   try {
-    const { name, description, category, minPriceHbar, photoDataUrl, seller, authToken } = req.body || {};
+    const { name, description, category, minPriceHbar, photoDataUrl, seller, authToken, requireHumanVerification } = req.body || {};
     // A verified Telegram session overrides the client-sent seller (can't be forged).
     const session = authToken ? verifySession(authToken) : null;
     const verifiedSeller = session ? `tg:${session.username || session.telegramId}` : null;
@@ -277,6 +277,7 @@ app.post('/api/listings', async (req, res) => {
       photoDataUrl,
       seller: verifiedSeller || seller,
       sellerWalletEvm: session?.walletEvm || null,
+      requireHumanVerification,
     });
     res.json({ ok: true, listing });
   } catch (err) {

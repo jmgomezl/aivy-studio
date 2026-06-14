@@ -15,6 +15,7 @@ export default function Sell() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('Other');
+  const [requireHuman, setRequireHuman] = useState(false);
   const [status, setStatus] = useState(null); // null | 'sending' | listing | 'error'
   const [errMsg, setErrMsg] = useState(null);
   const [result, setResult] = useState(null);
@@ -66,6 +67,7 @@ export default function Sell() {
           description: description.trim(),
           category,
           minPriceHbar: p,
+          requireHumanVerification: requireHuman,
           photoDataUrl: photo,
           seller: inTelegram ? `tg:${tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.id}` : 'web-seller',
           authToken: tgAuth?.token || null,
@@ -187,6 +189,14 @@ export default function Sell() {
           {es
             ? 'Se compromete on-chain. Ni el comprador ni su agente lo ven hasta cerrar.'
             : 'Committed on-chain. Neither the buyer nor their agent sees it until close.'}
+        </div>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 4, cursor: 'pointer', fontSize: 12.5, color: 'var(--text)' }}>
+          <input type="checkbox" checked={requireHuman} onChange={(e) => setRequireHuman(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--accent)' }} />
+          <span>🧑 {es ? 'Exigir comprador verificado como humano' : 'Require buyer to be human-verified'}</span>
+        </label>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', marginBottom: 14, paddingLeft: 25 }}>
+          {es ? 'World ID (Orb) o Telegram (privado, sin biometría).' : 'World ID (Orb) or Telegram (private, no biometrics).'}
         </div>
 
         {status === 'error' && errMsg && (

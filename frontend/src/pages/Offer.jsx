@@ -11,6 +11,7 @@ import NegotiationPanel from '../components/NegotiationPanel.jsx';
 import WorldGate from '../components/WorldGate.jsx';
 import TelegramLogin from '../components/TelegramLogin.jsx';
 import SellerChat from '../components/SellerChat.jsx';
+import VerifyGate from '../components/VerifyGate.jsx';
 import { toggleLang } from '../i18n';
 
 const STRATEGIES = ['aggressive', 'charming', 'analytical', 'emotional'];
@@ -36,7 +37,7 @@ export default function Offer() {
       .then((d) => {
         if (d.active) {
           const full = (d.listings || []).find((l) => l.id === d.active.id);
-          setActiveItem({ name: d.active.name, photoUrl: full?.photoUrl });
+          setActiveItem({ name: d.active.name, photoUrl: full?.photoUrl, requireHumanVerification: !!d.active.requireHumanVerification });
         }
       })
       .catch(() => {});
@@ -55,9 +56,13 @@ export default function Offer() {
   }, [tg]);
 
   const n = negotiations[negotiationId];
+  // Per-listing human gate, satisfiable by EITHER method (World ID or Telegram).
+  const verifyRequired = !!activeItem?.requireHumanVerification;
+  const verified = humanVerified || !!tgAuth;
 
   async function deployAgent() {
     if (agentStatus === 'running') return;
+    if (verifyRequired && !verified) return; // owner must be human-verified first
     const budget = Number(maxBudget);
     if (!budget || budget < 1) {
       setAgentStatus('error');
@@ -133,7 +138,7 @@ export default function Offer() {
         compact
         item={activeItem}
         buyerLabel={buyer}
-        inputEnabled={mode === 'human' && (!worldEnabled || humanVerified)}
+        inputEnabled={mode === 'human' && (!verifyRequired || verified)}
         onSubmitOffer={(price, argument) => submitOffer({ negotiationId, price, argument, buyer, authToken: tgAuth?.token })}
       />
 
@@ -143,18 +148,37 @@ export default function Offer() {
         </div>
       )}
 
-      {mode === 'human' && (
+      {/* Seller-required human gate (World ID or Telegram). */}
+      {mode === 'human' && verifyRequired && !verified && !n?.verdict && (
+        <div style={{ padding: '10px 14px 0' }}>
+          <VerifyGate
+            worldEnabled={worldEnabled}
+            scope={negotiationId}
+            onWorldVerified={() => setHumanVerified(true)}
+            onTgChange={setTgAuth}
+          />
+        </div>
+      )}
+
+      {/* Identity card when no gate is blocking (verified, or not required). */}
+      {mode === 'human' && (!verifyRequired || verified) && (
         <div style={{ padding: '10px 14px 0' }}>
           <TelegramLogin role="buyer" es={i18n.language === 'es'} onChange={setTgAuth} />
         </div>
       )}
 
-      {mode === 'human' && worldEnabled && !humanVerified && !n?.verdict && (
-        <WorldGate scope={negotiationId} onVerified={() => setHumanVerified(true)} />
-      )}
-
       {mode === 'agent' && !n?.verdict && (
         <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border)' }}>
+          {verifyRequired && !verified && (
+            <div style={{ marginBottom: 10 }}>
+              <VerifyGate
+                worldEnabled={worldEnabled}
+                scope={negotiationId}
+                onWorldVerified={() => setHumanVerified(true)}
+                onTgChange={setTgAuth}
+              />
+            </div>
+          )}
           <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px', marginBottom: 8 }}>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 9 }}>
               {t('deployBuyerAgent')}
@@ -202,14 +226,16 @@ export default function Offer() {
           )}
           <button
             onClick={deployAgent}
-            disabled={agentStatus === 'running'}
+            disabled={agentStatus === 'running' || (verifyRequired && !verified)}
             style={{
               width: '100%', padding: 11, background: 'linear-gradient(135deg,#1a1a4e,#2d2b7a)', border: '1px solid rgba(68,136,255,.4)',
               borderRadius: 7, color: 'var(--blue)', fontFamily: 'var(--sans)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              opacity: agentStatus === 'running' ? 0.5 : 1, touchAction: 'manipulation',
+              opacity: agentStatus === 'running' || (verifyRequired && !verified) ? 0.5 : 1, touchAction: 'manipulation',
             }}
           >
-            {agentStatus === 'running' ? '⏳ negotiating…' : t('deployBuyerAgent')}
+            {verifyRequired && !verified
+              ? (i18n.language === 'es' ? '🔒 Verifícate como humano primero' : '🔒 Verify you are human first')
+              : agentStatus === 'running' ? '⏳ negotiating…' : t('deployBuyerAgent')}
           </button>
         </div>
       )}
