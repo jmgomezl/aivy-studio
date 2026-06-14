@@ -31,6 +31,7 @@ import {
 } from './telegram-auth.js';
 import { readBalances } from './lib/faucet.js';
 import { resolveAgent, reverseName } from './ens.js';
+import { fundForGas } from './ledger.js';
 
 const TELEGRAM_BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME || 'cryptokickoffbot';
 
@@ -109,6 +110,10 @@ function applyMessage(m) {
     case 'payment':
       // real buyer-funded KUSD settlement of the negotiated amount.
       n.payment = event;
+      break;
+    case 'ledger_approval':
+      // a high-value settlement Clear-Signed on a physical Ledger (HITL).
+      n.ledgerApproval = event;
       break;
     case 'swap_status':
       n.swapStatus = event;
@@ -281,6 +286,38 @@ app.get('/api/wallet/balance', async (req, res) => {
   const bal = await readBalances(acct);
   if (!bal) return res.status(404).json({ error: 'account not found / not indexed yet' });
   res.json({ ok: true, ...bal, tokenSymbol: 'KUSD' });
+});
+
+// ── Ledger HITL (device-backed approval of high-value agent settlements) ──
+// Top up a Ledger address with a little Hedera-EVM gas so it can broadcast.
+app.get('/api/ledger/fund', async (req, res) => {
+  try {
+    res.json({ ok: true, ...(await fundForGas(req.query.address)) });
+  } catch (err) {
+    res.status(502).json({ ok: false, error: err.message });
+  }
+});
+
+// Record a device-approved settlement on HCS-10 so it shows in the live feed.
+app.post('/api/ledger/approval', async (req, res) => {
+  try {
+    const { negotiationId, amountUsd, signer, to, txHash, chainId } = req.body || {};
+    if (!txHash || !signer) return res.status(400).json({ error: 'txHash and signer required' });
+    const tx = await new TopicMessageSubmitTransaction()
+      .setTopicId(TOPIC)
+      .setMessage(JSON.stringify({
+        p: 'hcs-10', op: 'message', type: 'ledger_approval',
+        negotiationId: negotiationId || null, amountUsd: amountUsd || null,
+        signer, to: to || null, txHash, chainId: chainId || 296,
+        device: 'ledger', method: 'clear-sign', via: 'device-management-kit',
+      }))
+      .execute(operator);
+    await tx.getReceipt(operator);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[api/ledger/approval]', err.message);
+    res.status(500).json({ error: 'failed to record approval' });
+  }
 });
 
 // ── Conversational chat with the seller agent (off-chain negotiation layer) ──

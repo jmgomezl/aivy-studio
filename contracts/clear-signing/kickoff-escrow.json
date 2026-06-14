@@ -1,0 +1,52 @@
+{
+  "$schema": "https://github.com/LedgerHQ/clear-signing-erc7730-registry/raw/master/specs/erc7730-v1.schema.json",
+  "context": {
+    "$id": "KickoffEscrow",
+    "contract": {
+      "deployments": [
+        { "chainId": 296, "address": "0x6e58CFd91226a5D4D8dAf5d0bee882EE84C3451b" }
+      ],
+      "abi": [
+        { "type": "function", "name": "lock", "stateMutability": "payable", "inputs": [ { "name": "dealId", "type": "bytes32" }, { "name": "buyer", "type": "address" }, { "name": "seller", "type": "address" } ] },
+        { "type": "function", "name": "release", "stateMutability": "nonpayable", "inputs": [ { "name": "dealId", "type": "bytes32" } ] },
+        { "type": "function", "name": "refund", "stateMutability": "nonpayable", "inputs": [ { "name": "dealId", "type": "bytes32" } ] }
+      ]
+    }
+  },
+  "metadata": {
+    "owner": "Kickoff",
+    "info": {
+      "legalName": "Kickoff (Aivy Labs)",
+      "url": "https://kickoff.bot",
+      "lastUpdate": "2026-06-14T00:00:00Z"
+    }
+  },
+  "display": {
+    "formats": {
+      "lock(bytes32,address,address)": {
+        "intent": "Lock escrow for a deal",
+        "fields": [
+          { "path": "dealId", "label": "Deal", "format": "raw" },
+          { "path": "buyer", "label": "Buyer", "format": "addressName" },
+          { "path": "seller", "label": "Seller", "format": "addressName" },
+          { "path": "@.value", "label": "Amount locked", "format": "amount" }
+        ],
+        "required": ["dealId", "buyer", "seller"]
+      },
+      "release(bytes32)": {
+        "intent": "Release escrow to the seller",
+        "fields": [
+          { "path": "dealId", "label": "Deal", "format": "raw" }
+        ],
+        "required": ["dealId"]
+      },
+      "refund(bytes32)": {
+        "intent": "Refund escrow to the buyer",
+        "fields": [
+          { "path": "dealId", "label": "Deal", "format": "raw" }
+        ],
+        "required": ["dealId"]
+      }
+    }
+  }
+}

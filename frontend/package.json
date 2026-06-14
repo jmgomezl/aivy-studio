@@ -10,6 +10,10 @@
     "test:studio": "node scripts/studio-smoke.mjs"
   },
   "dependencies": {
+    "@ledgerhq/context-module": "^2.1.0",
+    "@ledgerhq/device-management-kit": "^1.6.0",
+    "@ledgerhq/device-signer-kit-ethereum": "^1.16.0",
+    "@ledgerhq/device-transport-kit-web-hid": "^1.2.3",
     "@twa-dev/sdk": "^8.0.2",
     "@worldcoin/idkit": "^4.1.8",
     "@xyflow/react": "^12.8.6",
@@ -17,7 +21,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-i18next": "^16.4.0",
-    "react-router-dom": "^7.13.0"
+    "react-router-dom": "^7.13.0",
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.1.4",

@@ -14,6 +14,7 @@ function badge(ev) {
   if (ev.type === 'reveal') return ['REVEAL', 'b-deal'];
   if (ev.type === 'insurance') return ['🛡 INSURED', 'b-deal'];
   if (ev.type === 'payment') return ['💵 PAID', 'b-deal'];
+  if (ev.type === 'ledger_approval') return ['🔐 LEDGER', 'b-deal'];
   if (ev.type === 'escrow') return ev.status === 'refunded' ? ['🔒 REFUND', 'b-offer'] : ev.status === 'released' ? ['🔒 RELEASED', 'b-deal'] : ['🔒 ESCROW', 'b-offer'];
   if (ev.type === 'swap') return ev.status === 'failed' ? ['🦄 SWAP ✕', 'b-reject'] : ['🦄 UNISWAP', 'b-deal'];
   if (ev.type === 'swap_status') return ['🦄 …', 'b-thinking'];
@@ -42,6 +43,8 @@ function lineFor(ev) {
       return `Package insured on-chain · ${ev.premiumHbar} HBAR premium · covers ${ev.coverageHbar} HBAR${ev.txHash ? ' · ' + String(ev.txHash).slice(0, 12) + '…' : ''}`;
     case 'payment':
       return `Real settlement · ${Number(ev.amountUsd).toLocaleString()} KUSD buyer-funded · ${ev.from} → ${ev.to}${ev.capped ? ' · capped to balance' : ''}`;
+    case 'ledger_approval':
+      return `Human-in-the-loop · Ledger Clear-Signed${ev.amountUsd ? ' ' + ev.amountUsd + ' USD' : ''} · signer ${String(ev.signer).slice(0, 10)}…${ev.txHash ? ' · ' + String(ev.txHash).slice(0, 12) + '…' : ''}`;
     case 'escrow': {
       const verb = ev.status === 'released' ? 'released to seller' : ev.status === 'refunded' ? 'refunded to buyer' : 'locked on-chain';
       const custody = ev.custody === 'operator-funded' ? ' · operator-funded (demo)' : '';
@@ -66,6 +69,7 @@ function rowTone(ev) {
   if (ev.type === 'reveal') return 'r-accept';
   if (ev.type === 'insurance') return 'r-accept';
   if (ev.type === 'payment') return 'r-accept';
+  if (ev.type === 'ledger_approval') return 'r-accept';
   if (ev.type === 'escrow') return ev.status === 'refunded' ? 'r-counter' : 'r-accept';
   if (ev.type === 'swap') return ev.status === 'failed' ? 'r-reject' : 'r-reasoning';
   if (ev.type === 'swap_status') return 'r-reasoning';

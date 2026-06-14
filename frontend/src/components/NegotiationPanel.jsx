@@ -379,6 +379,22 @@ export default function NegotiationPanel({
         );
       })()}
 
+      {n?.ledgerApproval && (() => {
+        const es = i18n.language === 'es';
+        const la = n.ledgerApproval;
+        return (
+          <div className="ledgerapp-badge">
+            <span className="ledgerapp-title">🔐 {es ? 'Aprobado en Ledger (Clear-Sign)' : 'Ledger-approved · Clear-Signed'}</span>
+            <span className="ledgerapp-meta">
+              {es ? 'firmado en dispositivo' : 'signed on device'} · {String(la.signer).slice(0, 8)}…{la.amountUsd ? ` · ${la.amountUsd} USD` : ''}
+            </span>
+            {la.txHash && (
+              <a className="ledgerapp-tx" href={`https://hashscan.io/testnet/transaction/${la.txHash}`} target="_blank" rel="noreferrer">on-chain ↗</a>
+            )}
+          </div>
+        );
+      })()}
+
       {(n?.swap || n?.swapStatus) && (() => {
         const es = i18n.language === 'es';
         const done = n?.swap;

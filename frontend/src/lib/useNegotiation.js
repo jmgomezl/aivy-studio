@@ -61,6 +61,7 @@ export function useNegotiationFeed() {
               if (ev.type === 'payment') next.payment = ev;
               if (ev.type === 'swap_status') next.swapStatus = ev;
               if (ev.type === 'swap') next.swap = ev;
+              if (ev.type === 'ledger_approval') next.ledgerApproval = ev;
               if (ev.type === 'reveal') next.reveal = ev;
               return { ...n, [ev.negotiationId]: next };
             });

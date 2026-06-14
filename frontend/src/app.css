@@ -164,6 +164,21 @@
 .ens-card-kv { display:flex; flex-wrap:wrap; gap:5px 12px; margin-top:6px; font-family:var(--mono); font-size:9px; color:var(--muted); }
 .ens-card-kv b { color:var(--text); font-weight:700; }
 .ens-card-kv a { color:#6E86FF; text-decoration:none; }
+.ledger-card { border:1px solid rgba(255,255,255,.14); border-radius:12px; padding:16px; background:var(--card); }
+.ledger-head { font-size:13px; font-weight:800; color:var(--text); margin-bottom:8px; }
+.ledger-sub { font-size:12px; color:var(--muted); line-height:1.6; margin-bottom:14px; }
+.ledger-sub code, .ledger-card code { font-family:var(--mono); font-size:10px; color:var(--accent); }
+.ledger-addr { font-family:var(--mono); font-size:11px; color:var(--text); margin-bottom:10px; }
+.ledger-ok { color:#3FE08F; font-size:9px; margin-left:6px; }
+.ledger-prompt { margin-top:12px; padding:9px 11px; border:1px solid rgba(255,184,0,.4); border-radius:8px; background:color-mix(in srgb,#FFB800 9%,transparent); color:#FFB800; font-size:12px; }
+.ledger-error { margin-top:10px; color:var(--red); font-size:12px; }
+.ledger-done { margin-top:10px; padding:10px 12px; border:1px solid rgba(63,224,143,.4); border-radius:8px; background:color-mix(in srgb,#3FE08F 10%,transparent); color:#3FE08F; font-size:12px; font-family:var(--mono); }
+.ledger-done a { color:#3FE08F; }
+.ledger-foot { margin-top:12px; font-family:var(--mono); font-size:8.5px; color:var(--muted); }
+.ledgerapp-badge { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:10px 16px 0; padding:8px 11px; border:1px solid rgba(180,180,200,.4); border-radius:9px; background:color-mix(in srgb,#9aa0b5 10%,transparent); }
+.ledgerapp-title { font-size:12px; font-weight:800; color:#cfd3e0; }
+.ledgerapp-meta { font-family:var(--mono); font-size:10px; color:var(--muted); }
+.ledgerapp-tx { margin-left:auto; font-family:var(--mono); font-size:9px; color:#cfd3e0; text-decoration:none; border:1px solid rgba(180,180,200,.4); border-radius:5px; padding:2px 7px; }
 /* Live conversational chat with the seller agent */
 .seller-chat { border:1px solid var(--border); border-radius:12px; background:var(--card); overflow:hidden; }
 .sc-head { padding:8px 12px; font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); border-bottom:1px solid var(--border); }
