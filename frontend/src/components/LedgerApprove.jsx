@@ -69,8 +69,20 @@ export default function LedgerApprove({ negotiationId, amountUsd = 500, recipien
     <div className="ledger-card">
       <div className="ledger-head">🔐 High-value settlement · Ledger approval required</div>
       <div className="ledger-sub">
-        The agent proposes a settlement of <b>{amountUsd} USD</b>{negotiationId ? <> for <code>{negotiationId}</code></> : null}. Above the autonomy threshold it
+        The agent proposes a settlement of <b>{amountUsd} USD</b>{negotiationId ? <> for deal <code>{negotiationId}</code></> : null}. Above the autonomy threshold it
         cannot execute until the human Clear-Signs it on a physical Ledger.
+      </div>
+      {negotiationId ? (
+        <div style={{ fontSize: 11, color: '#A78BFA', background: 'color-mix(in srgb,#8259EF 12%,transparent)', border: '1px solid rgba(130,89,239,.4)', borderRadius: 8, padding: '8px 10px', marginBottom: 12 }}>
+          🔗 Linked to your deal — when you Clear-Sign, the approval posts back to that negotiation and shows as “Ledger-approved.” Keep your deal tab open.
+        </div>
+      ) : (
+        <div style={{ fontSize: 11, color: 'var(--muted)', border: '1px dashed var(--border)', borderRadius: 8, padding: '8px 10px', marginBottom: 12 }}>
+          ⓘ Standalone demo. To see it <b>wired to a real deal</b>: in the marketplace, negotiate a deal <b>over 100 USD</b>, then click “🔐 Approve on Ledger” on the closed deal — it opens here with that deal’s details and the approval flows back onto the deal.
+        </div>
+      )}
+      <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--muted)', marginBottom: 12 }}>
+        1 Connect Ledger → 2 Clear-Sign on device → 3 broadcast on Hedera EVM → 4 recorded on the live feed
       </div>
 
       {!address ? (

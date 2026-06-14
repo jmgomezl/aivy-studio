@@ -76,7 +76,9 @@ export async function clearSignAndBroadcast({ dmk, sessionId }, { to, valueWei, 
   const signer = new SignerEthBuilder({ dmk, sessionId, originToken: ORIGIN_TOKEN }).build();
   const from = await getLedgerAddress({ dmk, sessionId }, { onPrompt });
 
-  const nonce = await provider.getTransactionCount(from);
+  // 'pending' nonce avoids re-using a stale nonce when the RPC lags after a
+  // previous tx (the cause of "signing failed" on a second attempt).
+  const nonce = await provider.getTransactionCount(from, 'pending');
   const fee = await provider.getFeeData();
   const gasPrice = fee.gasPrice ? (fee.gasPrice * 12n) / 10n : 600000000000n;
   const tx = Transaction.from({ to, value: BigInt(valueWei), chainId, nonce, gasLimit: 21000n, gasPrice, type: 0, data: '0x' });
@@ -84,6 +86,13 @@ export async function clearSignAndBroadcast({ dmk, sessionId }, { to, valueWei, 
   // DMK expects the RLP-encoded UNSIGNED tx as bytes; r/s/v come back from the device.
   const out = await runAction(signer.signTransaction(DERIVATION, getBytes(tx.unsignedSerialized)), onPrompt);
   tx.signature = Signature.from({ r: out.r, s: out.s, v: Number(out.v) });
-  const sent = await provider.broadcastTransaction(tx.serialized);
-  return { hash: sent.hash, from, to, value: tx.value.toString(), chainId, explorer: explorerTx(sent.hash) };
+  try {
+    const sent = await provider.broadcastTransaction(tx.serialized);
+    return { hash: sent.hash, from, to, value: tx.value.toString(), chainId, explorer: explorerTx(sent.hash) };
+  } catch (err) {
+    // Surface the relay's real reason (nonce too low, insufficient funds, etc.).
+    const reason = err?.info?.error?.message || err?.shortMessage || err?.message || 'broadcast failed';
+    console.error('[ledger] broadcast failed:', reason, err);
+    throw new Error(`broadcast: ${reason}`);
+  }
 }
