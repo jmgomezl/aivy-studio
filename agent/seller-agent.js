@@ -10,6 +10,7 @@ import { agentClient, fetchTopicMessages, publishMessage } from './hedera.js';
 import { escrowClient } from './escrow.js';
 import { settleDeal } from './delegation.js';
 import { crossAssetSettle, crossAssetSettleEnabled } from './uniswap-settle.js';
+import { insureDeal, insuranceEnabled } from './insurance.js';
 
 // Testnet-budget guard: the on-chain settlement moves a symbolic amount no
 // matter what price was negotiated, so demos can't drain the faucet balance.
@@ -120,6 +121,11 @@ export async function handleOffer(offer) {
       if (crossAssetSettleEnabled()) {
         void crossAssetSettle(client, TOPIC, { negotiationId: offer.negotiationId });
       }
+
+      // Optional package insurance — buy the policy on-chain if the buyer opted in.
+      if (offer.insured && insuranceEnabled()) {
+        void insureDeal(client, TOPIC, { negotiationId: offer.negotiationId, coverageHbar: offer.price });
+      }
     } catch (err) {
       console.warn('[agent] settlement failed (verdict stands):', err.message);
     }
@@ -151,6 +157,7 @@ async function loop() {
             buyer: m.json.buyer,
             price: Number(m.json.price),
             argument: m.json.argument,
+            insured: !!m.json.insured,
           });
         }
       }

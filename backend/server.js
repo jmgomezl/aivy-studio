@@ -96,6 +96,9 @@ function applyMessage(m) {
     case 'settlement':
       n.settlement = event;
       break;
+    case 'insurance':
+      n.insurance = event;
+      break;
     case 'reveal': {
       n.reveal = event;
       // Deal closed → mark the active listing SOLD with the accepted price.
@@ -121,7 +124,7 @@ app.get('/api/negotiations/:id', (req, res) => {
 // Judge/buyer submits an offer: published straight to the HCS-10 topic.
 app.post('/api/offer', async (req, res) => {
   try {
-    const { negotiationId, price, argument, buyer, authToken } = req.body || {};
+    const { negotiationId, price, argument, buyer, authToken, insured } = req.body || {};
     if (!negotiationId || !Number(price) || !argument?.trim()) {
       return res.status(400).json({ error: 'negotiationId, price and argument are required' });
     }
@@ -139,6 +142,7 @@ app.post('/api/offer', async (req, res) => {
           buyer: offerBuyer,
           price: Number(price),
           argument: argument.trim().slice(0, 1000),
+          ...(insured ? { insured: true } : {}),
         })
       )
       .execute(operator);

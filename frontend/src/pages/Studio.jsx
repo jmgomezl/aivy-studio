@@ -583,6 +583,12 @@ function liveEventLine(event, index) {
         text: event.status === 'failed' ? 'cross-asset swap failed' : `${event.tokenIn || 'ETH'} → ${event.tokenOut || 'token'} · ${event.txHash ? String(event.txHash).slice(0, 16) + '…' : 'executed'}`,
         meta: tail,
       };
+    case 'insurance':
+      return {
+        id, icon: '🛡', tag: 'INSURED', tone: 'green',
+        text: `${event.premiumHbar} HBAR premium · covers ${event.coverageHbar} HBAR${event.txHash ? ' · ' + String(event.txHash).slice(0, 14) + '…' : ''}`,
+        meta: tail,
+      };
     default:
       return { id, icon: '•', tag: String(event.type || 'event'), tone: 'muted', text: '', meta: tail };
   }
@@ -755,7 +761,7 @@ export default function Studio() {
   // This is what makes "Activate" show actual outputs, not just node colors.
   const consoleLines = useMemo(() => {
     if (isKickoffWorkflow) {
-      const tracked = new Set(['offer', 'agent_status', 'agent_reasoning', 'agent_verdict', 'settlement', 'reveal', 'swap', 'swap_status']);
+      const tracked = new Set(['offer', 'agent_status', 'agent_reasoning', 'agent_verdict', 'settlement', 'reveal', 'swap', 'swap_status', 'insurance']);
       return feed.filter((e) => tracked.has(e.type)).map((e, i) => liveEventLine(e, i));
     }
     const toneByStatus = { done: 'green', current: 'yellow', queued: 'muted' };

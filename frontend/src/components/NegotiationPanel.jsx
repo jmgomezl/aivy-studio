@@ -295,6 +295,20 @@ export default function NegotiationPanel({
         </div>
       )}
 
+      {n?.insurance && (
+        <div className="ins-badge">
+          <span className="ins-title">🛡 {i18n.language === 'es' ? 'Paquete asegurado' : 'Package insured'}</span>
+          <span className="ins-meta">
+            {n.insurance.premiumHbar} HBAR · {i18n.language === 'es' ? 'cubre' : 'covers'} {n.insurance.coverageHbar} HBAR
+          </span>
+          {n.insurance.txHash && (
+            <a className="ins-tx" href={`https://hashscan.io/testnet/transaction/${n.insurance.txHash}`} target="_blank" rel="noreferrer">
+              {i18n.language === 'es' ? 'on-chain ↗' : 'on-chain ↗'}
+            </a>
+          )}
+        </div>
+      )}
+
       {n?.reveal && (() => {
         const g = shippingGuide({
           negotiationId: n.negotiationId,

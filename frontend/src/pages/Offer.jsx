@@ -28,6 +28,7 @@ export default function Offer() {
   const [worldEnabled, setWorldEnabled] = useState(false);
   const [activeItem, setActiveItem] = useState(null);
   const [tgAuth, setTgAuth] = useState(null);
+  const [insured, setInsured] = useState(false);
 
   useEffect(() => {
     fetch('/api/world/config').then((r) => r.json()).then((c) => setWorldEnabled(!!c.enabled)).catch(() => {});
@@ -139,8 +140,15 @@ export default function Offer() {
         item={activeItem}
         buyerLabel={buyer}
         inputEnabled={mode === 'human' && (!verifyRequired || verified)}
-        onSubmitOffer={(price, argument) => submitOffer({ negotiationId, price, argument, buyer, authToken: tgAuth?.token })}
+        onSubmitOffer={(price, argument) => submitOffer({ negotiationId, price, argument, buyer, authToken: tgAuth?.token, insured })}
       />
+
+      {mode === 'human' && !n?.verdict && (!verifyRequired || verified) && (
+        <label style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '10px 14px 0', cursor: 'pointer', fontSize: 12.5, color: 'var(--text)' }}>
+          <input type="checkbox" checked={insured} onChange={(e) => setInsured(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--accent)' }} />
+          <span>🛡 {i18n.language === 'es' ? 'Asegurar el paquete (1 HBAR · cubre daño/pérdida)' : 'Insure the package (1 HBAR · covers damage/loss)'}</span>
+        </label>
+      )}
 
       {mode === 'human' && !n?.verdict && (
         <div style={{ padding: '10px 14px 0' }}>

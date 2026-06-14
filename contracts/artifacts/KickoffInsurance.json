@@ -1,0 +1,209 @@
+{
+  "abi": [
+    {
+      "inputs": [],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "dealId",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "by",
+          "type": "address"
+        }
+      ],
+      "name": "ClaimFiled",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "dealId",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amountWei",
+          "type": "uint256"
+        }
+      ],
+      "name": "ClaimPaid",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "dealId",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "beneficiary",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "premiumWei",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "coverageHbar",
+          "type": "uint256"
+        }
+      ],
+      "name": "PolicyBought",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "admin",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "dealId",
+          "type": "bytes32"
+        }
+      ],
+      "name": "fileClaim",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "dealId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "beneficiary",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "coverageHbar",
+          "type": "uint256"
+        }
+      ],
+      "name": "insure",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "dealId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amountWei",
+          "type": "uint256"
+        }
+      ],
+      "name": "payClaim",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "policies",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "beneficiary",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "premiumWei",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "coverageHbar",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "claimed",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "paid",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "active",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "poolBalance",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x6080604052348015600e575f5ffd5b505f80546001600160a01b031916331790556106b18061002d5f395ff3fe608060405260043610610054575f3560e01c80633cb89bc5146100585780638320c1611461007957806396365d441461008c578063d52f45f2146100ab578063ddbfd8ef146100ca578063f851a4401461016a575b5f5ffd5b348015610063575f5ffd5b50610077610072366004610604565b6101a0565b005b61007761008736600461061b565b610254565b348015610097575f5ffd5b506040514781526020015b60405180910390f35b3480156100b6575f5ffd5b506100776100c536600461065b565b61042e565b3480156100d5575f5ffd5b5061012d6100e4366004610604565b600160208190525f918252604090912080549181015460028201546003909201546001600160a01b039093169290919060ff808216916101008104821691620100009091041686565b604080516001600160a01b0390971687526020870195909552938501929092521515606084015215156080830152151560a082015260c0016100a2565b348015610175575f5ffd5b505f54610188906001600160a01b031681565b6040516001600160a01b0390911681526020016100a2565b5f818152600160205260409020600381015462010000900460ff1680156101d157506003810154610100900460ff16155b6102155760405162461bcd60e51b815260206004820152601060248201526f6e6f2061637469766520706f6c69637960801b60448201526064015b60405180910390fd5b60038101805460ff19166001179055604051339083907fc48e9c8709ee5d695622911ccb174ffd980217fd2b54e37d8c8baa977be31405905f90a35050565b5f8381526001602052604090206003015462010000900460ff16156102ab5760405162461bcd60e51b815260206004820152600d60248201526c706f6c6963792065786973747360981b604482015260640161020c565b5f34116102ed5760405162461bcd60e51b815260206004820152601060248201526f1c1c995b5a5d5b481c995c5d5a5c995960821b604482015260640161020c565b6001600160a01b0382166103365760405162461bcd60e51b815260206004820152601060248201526f7a65726f2062656e656669636961727960801b604482015260640161020c565b6040805160c0810182526001600160a01b038085168083523460208085018281528587018881525f6060880181815260808901828152600160a08b018181528f855296819052928b902099518a5499166001600160a01b03199099169890981789559251908801555160028701555160039095018054945191511515620100000262ff0000199215156101000261ff00199715159790971661ffff19909616959095179590951716929092179092559151909185917f9b42dfaea54d509839a6ec11dfd118f05cfc09c8b6751e572def05a10ab009eb91610421918690918252602082015260400190565b60405180910390a3505050565b5f546001600160a01b031633146104735760405162461bcd60e51b81526020600482015260096024820152683737ba1030b236b4b760b91b604482015260640161020c565b5f828152600160205260409020600381015460ff16801561049e57506003810154610100900460ff16155b6104da5760405162461bcd60e51b815260206004820152600d60248201526c6e6f7420636c61696d61626c6560981b604482015260640161020c565b478211156105195760405162461bcd60e51b815260206004820152600c60248201526b706f6f6c20746f6f206c6f7760a01b604482015260640161020c565b60038101805461ff00191661010017905580546040515f916001600160a01b03169084908381818185875af1925050503d805f8114610573576040519150601f19603f3d011682016040523d82523d5f602084013e610578565b606091505b50509050806105bb5760405162461bcd60e51b815260206004820152600f60248201526e1d1c985b9cd9995c8819985a5b1959608a1b604482015260640161020c565b81546040518481526001600160a01b039091169085907f81eb79acc6a0ef94dfb507ea35363f86d0d190b46f4d608dc4c1d7480a7c7cbc9060200160405180910390a350505050565b5f60208284031215610614575f5ffd5b5035919050565b5f5f5f6060848603121561062d575f5ffd5b8335925060208401356001600160a01b038116811461064a575f5ffd5b929592945050506040919091013590565b5f5f6040838503121561066c575f5ffd5b5050803592602090910135915056fea2646970667358221220121519582b86bcece3af00ad1ce239278ec5416fbcb686c6b03c53eb15fcfcb664736f6c63430008230033"
+}
