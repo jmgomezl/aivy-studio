@@ -38,6 +38,12 @@
   "minPrice": "Precio mín. (on-chain)",
   "offerAccepted": "Oferta aceptada",
   "spread": "Margen",
+  "orderSealed": "Trato cerrado — envíalo",
+  "shipTo": "Enviar a",
+  "tracking": "Seguimiento",
+  "carrier": "Transportadora",
+  "eta": "Entrega est.",
+  "shipNote": "Guía generada al cerrar el trato. La dirección del comprador solo la ve el vendedor.",
   "newNegotiation": "↺ Nueva negociación",
   "liveActivity": "⚡ Actividad de agentes en vivo",
   "liveNegotiation": "NEGOCIACIÓN EN VIVO",
@@ -155,6 +161,9 @@
     "tokenOut": "Token salida",
     "slippage": "Slippage",
     "router": "Router",
+    "agentId": "ID del agente",
+    "inputMapping": "Mapeo de entrada",
+    "outputMapping": "Mapeo de salida",
     "apiName": "Nombre API",
     "endpoint": "Endpoint",
     "auth": "Auth"
@@ -175,6 +184,7 @@
       "human": "{{node}} capturó input",
       "scheduled": "{{node}} puso transacción en cola",
       "uniswap": "{{node}} preparó swap",
+      "openclaw": "{{node}} ejecutó tarea de agente externo",
       "custom": "{{node}} completó paso"
     }
   },
@@ -194,6 +204,10 @@
     "escrowRelease": {
       "title": "Escrow Release",
       "desc": "Confirmación del comprador activa checks de contrato, liberación de escrow y notificación."
+    },
+    "openclaw": {
+      "title": "OpenClaw Connector",
+      "desc": "Agentes externos de OpenClaw pueden enriquecer o decidir un flujo de Kickoff antes de auditoría, aprobación y liquidación."
     }
   },
   "palette": {
@@ -241,6 +255,11 @@
       "title": "Uniswap Swap",
       "sub": "liquidez EVM",
       "detail": "acepta cualquier token · swap cross-asset"
+    },
+    "openclaw": {
+      "title": "Agente OpenClaw",
+      "sub": "conector de agente externo",
+      "detail": "ejecuta agentes externos dentro del grafo"
     }
   },
   "howItWorks": "Cómo funciona",

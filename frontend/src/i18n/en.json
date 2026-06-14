@@ -38,6 +38,12 @@
   "minPrice": "Min price (on-chain)",
   "offerAccepted": "Offer accepted",
   "spread": "Spread",
+  "orderSealed": "Order sealed — ship it",
+  "shipTo": "Ship to",
+  "tracking": "Tracking",
+  "carrier": "Carrier",
+  "eta": "Est. delivery",
+  "shipNote": "Label generated on deal close. Buyer address shown to the seller only.",
   "newNegotiation": "↺ Start new negotiation",
   "liveActivity": "⚡ Live agent activity",
   "liveNegotiation": "LIVE NEGOTIATION",
@@ -155,6 +161,9 @@
     "tokenOut": "Token out",
     "slippage": "Slippage",
     "router": "Router",
+    "agentId": "Agent ID",
+    "inputMapping": "Input mapping",
+    "outputMapping": "Output mapping",
     "apiName": "API name",
     "endpoint": "Endpoint",
     "auth": "Auth"
@@ -175,6 +184,7 @@
       "human": "{{node}} captured input",
       "scheduled": "{{node}} queued transaction",
       "uniswap": "{{node}} prepared swap",
+      "openclaw": "{{node}} ran external agent task",
       "custom": "{{node}} completed step"
     }
   },
@@ -194,6 +204,10 @@
     "escrowRelease": {
       "title": "Escrow Release",
       "desc": "Buyer confirmation triggers contract checks, escrow release, and notification after settlement."
+    },
+    "openclaw": {
+      "title": "OpenClaw Connector",
+      "desc": "External OpenClaw agents can enrich or decide a Kickoff flow before audit, approval, and settlement."
     }
   },
   "palette": {
@@ -241,6 +255,11 @@
       "title": "Uniswap Swap",
       "sub": "EVM liquidity",
       "detail": "accept any token · cross-asset swap"
+    },
+    "openclaw": {
+      "title": "OpenClaw Agent",
+      "sub": "external agent connector",
+      "detail": "run external agents inside the graph"
     }
   },
   "howItWorks": "How it works",

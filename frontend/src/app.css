@@ -109,6 +109,20 @@
 .reveal-lbl { font-size:9px; color:var(--muted); font-family:var(--mono); }
 .spread-pos { color:var(--accent); }
 .spread-neg { color:var(--red); }
+/* Post-sale shipping label (Amazon-style) shown when a deal seals */
+.ship-label { margin:10px 16px 0; border:1px solid var(--border); border-radius:10px; background:repeating-linear-gradient(135deg, color-mix(in srgb,var(--card) 92%, transparent), color-mix(in srgb,var(--card) 92%, transparent) 10px, color-mix(in srgb,var(--card) 86%, transparent) 10px, color-mix(in srgb,var(--card) 86%, transparent) 20px); overflow:hidden; flex-shrink:0; }
+.ship-head { display:flex; align-items:center; justify-content:space-between; padding:9px 12px; background:rgba(0,255,135,.07); border-bottom:1px dashed var(--border); font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text); }
+.ship-head strong { color:var(--accent); }
+.ship-shipto { padding:10px 12px 8px; }
+.ship-lbl { font-family:var(--mono); font-size:8.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
+.ship-name { font-size:14px; font-weight:700; color:var(--text); }
+.ship-name em { font-style:normal; font-family:var(--mono); font-size:10px; color:var(--blue); }
+.ship-addr { font-size:12px; color:var(--text); line-height:1.5; margin-top:2px; }
+.ship-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); border-top:1px dashed var(--border); }
+.ship-grid > div { background:var(--card); padding:7px 10px; }
+.ship-grid span { display:block; font-family:var(--mono); font-size:8px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:2px; }
+.ship-grid strong { font-family:var(--mono); font-size:11px; color:var(--text); }
+.ship-note { padding:7px 12px; font-family:var(--mono); font-size:8.5px; color:var(--muted); line-height:1.5; border-top:1px dashed var(--border); }
 .reset-btn { margin:6px 14px; padding:7px; background:transparent; border:1px solid var(--border); border-radius:6px; color:var(--muted); font-size:11px; cursor:pointer; text-align:center; }
 .reset-btn:hover { border-color:var(--accent); color:var(--accent); }
 

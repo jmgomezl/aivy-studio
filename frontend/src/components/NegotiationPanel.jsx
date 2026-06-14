@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { assetUrl } from '../lib/asset.js';
+import { shippingGuide } from '../lib/shipping.js';
 
 const SELLER = { av: 'seller', label: 'CA' };
 
@@ -282,6 +283,34 @@ export default function NegotiationPanel({
           </div>
         </div>
       )}
+
+      {n?.reveal && (() => {
+        const g = shippingGuide({
+          negotiationId: n.negotiationId,
+          buyer: lastOffer?.buyer,
+          itemName: item?.name,
+          price: n.reveal.acceptedPrice,
+        });
+        return (
+          <div className="ship-label">
+            <div className="ship-head">
+              <span>📦 {t('orderSealed')}</span>
+              <strong>{g.order}</strong>
+            </div>
+            <div className="ship-shipto">
+              <div className="ship-lbl">{t('shipTo')}</div>
+              <div className="ship-name">{g.name}{g.handle ? <em> · {g.handle}</em> : null}</div>
+              <div className="ship-addr">{g.street}<br />{g.city}</div>
+            </div>
+            <div className="ship-grid">
+              <div><span>{t('tracking')}</span><strong>{g.tracking}</strong></div>
+              <div><span>{t('carrier')}</span><strong>{g.carrier}</strong></div>
+              <div><span>{t('eta')}</span><strong>{g.eta}</strong></div>
+            </div>
+            <div className="ship-note">{t('shipNote')}</div>
+          </div>
+        );
+      })()}
 
       {inputEnabled && !dealClosed && (
         <div className="offer-input">
