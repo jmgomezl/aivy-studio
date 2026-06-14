@@ -107,6 +107,9 @@ function defaultEdgeLabel(sourceNode, targetNode) {
   if (sourceKind === 'agent' && targetKind === 'openclaw') return 'delegate';
   if (sourceKind === 'openclaw' && targetKind === 'hcs10') return 'agent output';
   if (sourceKind === 'openclaw' && targetKind === 'agent') return 'result';
+  if ((sourceKind === 'agent' || sourceKind === 'openclaw') && targetKind === 'x402') return 'pay';
+  if (sourceKind === 'x402' && (targetKind === 'agent' || targetKind === 'openclaw')) return 'paid response';
+  if (sourceKind === 'x402' && targetKind === 'hcs10') return 'receipt';
   if (sourceKind === 'agent' && targetKind === 'hcs10') return 'message';
   if (sourceKind === 'hcs10' && targetKind === 'agent') return 'event';
   if (sourceKind === 'agent' && targetKind === 'escrow') return 'settle';
@@ -181,6 +184,15 @@ const nodeConfigFields = {
     { key: 'inputMapping', type: 'textarea' },
     { key: 'outputMapping', type: 'textarea' },
     { key: 'timeout', placeholder: '60s' },
+  ],
+  x402: [
+    { key: 'resourceUrl', placeholder: 'https://api.example.com/paid-tool' },
+    { key: 'network', type: 'select', options: ['base', 'base-sepolia', 'solana', 'hedera-evm'] },
+    { key: 'paymentToken', placeholder: 'USDC' },
+    { key: 'maxSpend', placeholder: '0.10 USDC' },
+    { key: 'facilitator', placeholder: 'https://facilitator.x402.org' },
+    { key: 'settlementMode', type: 'select', options: ['exact', 'max-cap', 'manual-approval'] },
+    { key: 'receiptTarget', placeholder: 'hcs10 topic / webhook' },
   ],
   custom: [
     { key: 'apiName', placeholder: 'external service' },
@@ -367,6 +379,44 @@ const studioTemplateDefinitions = [
       { id: 'openclaw-edge-agent-audit', source: 'openclaw-agent', target: 'openclaw-audit', label: 'agent output' },
       { id: 'openclaw-edge-audit-seller', source: 'openclaw-audit', target: 'openclaw-seller', label: 'context' },
       { id: 'openclaw-edge-seller-gate', source: 'openclaw-seller', target: 'openclaw-gate', label: 'risk check' },
+    ],
+  },
+  {
+    id: 'x402-paid-agent',
+    emoji: '$',
+    titleKey: 'studioTemplates.x402.title',
+    descKey: 'studioTemplates.x402.desc',
+    nodes: [
+      studioNode('x402-agent', 'agent', '🤖', '#A78BFA', 'Buyer Agent', 'needs paid data', 'decides when a paid API call is worth the spend', 80, 130, {
+        model: 'gpt-4o',
+        tools: 'x402, hcs10',
+      }),
+      studioNode('x402-pay', 'x402', '$', '#22C55E', 'x402 Payment', 'HTTP 402 connector', 'pays a metered API or agent endpoint with a capped stablecoin spend', 350, 130, {
+        resourceUrl: 'https://api.example.com/paid-intel',
+        network: 'base-sepolia',
+        paymentToken: 'USDC',
+        maxSpend: '0.10 USDC',
+        settlementMode: 'max-cap',
+      }),
+      studioNode('x402-openclaw', 'openclaw', 'OC', '#F97316', 'OpenClaw Worker', 'external agent', 'uses the paid resource result to complete a Kickoff task', 620, 130, {
+        endpoint: 'https://openclaw.example.com/api/tasks',
+        agentId: 'paid-research-agent',
+        auth: 'api-key',
+      }),
+      studioNode('x402-audit', 'hcs10', '⬡', '#00FF87', 'Payment Receipt Topic', 'HCS-10 receipt', 'records spend cap, resource receipt, and agent handoff', 890, 130, {
+        network: 'hedera-testnet',
+        memo: 'x402-paid-agent-receipts',
+      }),
+      studioNode('x402-gate', 'approval', '🔐', '#FF4444', 'Spend Gate', 'human approval', 'requires approval before exceeding the configured max spend', 350, 310, {
+        threshold: '> 0.10 USDC',
+        timeout: '5m',
+      }),
+    ],
+    edges: [
+      { id: 'x402-edge-agent-pay', source: 'x402-agent', target: 'x402-pay', label: 'pay' },
+      { id: 'x402-edge-pay-openclaw', source: 'x402-pay', target: 'x402-openclaw', label: 'paid response' },
+      { id: 'x402-edge-openclaw-audit', source: 'x402-openclaw', target: 'x402-audit', label: 'receipt' },
+      { id: 'x402-edge-pay-gate', source: 'x402-pay', target: 'x402-gate', label: 'over cap' },
     ],
   },
 ];
@@ -567,6 +617,7 @@ export default function Studio() {
       { kind: 'scheduled', icon: '⏱', color: '#7C3AED', title: t('palette.scheduled.title'), sub: t('palette.scheduled.sub'), detail: t('palette.scheduled.detail') },
       { kind: 'uniswap', icon: '🦄', color: '#FF007A', title: t('palette.uniswap.title'), sub: t('palette.uniswap.sub'), detail: t('palette.uniswap.detail') },
       { kind: 'openclaw', icon: 'OC', color: '#F97316', title: t('palette.openclaw.title'), sub: t('palette.openclaw.sub'), detail: t('palette.openclaw.detail') },
+      { kind: 'x402', icon: '$', color: '#22C55E', title: t('palette.x402.title'), sub: t('palette.x402.sub'), detail: t('palette.x402.detail') },
     ],
     [t]
   );

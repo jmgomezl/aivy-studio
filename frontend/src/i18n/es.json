@@ -164,6 +164,12 @@
     "agentId": "ID del agente",
     "inputMapping": "Mapeo de entrada",
     "outputMapping": "Mapeo de salida",
+    "resourceUrl": "URL del recurso",
+    "paymentToken": "Token de pago",
+    "maxSpend": "Gasto máximo",
+    "facilitator": "Facilitador",
+    "settlementMode": "Modo de liquidación",
+    "receiptTarget": "Destino del recibo",
     "apiName": "Nombre API",
     "endpoint": "Endpoint",
     "auth": "Auth"
@@ -185,6 +191,7 @@
       "scheduled": "{{node}} puso transacción en cola",
       "uniswap": "{{node}} preparó swap",
       "openclaw": "{{node}} ejecutó tarea de agente externo",
+      "x402": "{{node}} preparó solicitud de recurso pago",
       "custom": "{{node}} completó paso"
     }
   },
@@ -208,6 +215,10 @@
     "openclaw": {
       "title": "OpenClaw Connector",
       "desc": "Agentes externos de OpenClaw pueden enriquecer o decidir un flujo de Kickoff antes de auditoría, aprobación y liquidación."
+    },
+    "x402": {
+      "title": "Recurso pago x402",
+      "desc": "Los agentes pueden solicitar APIs medidas o endpoints de otros agentes usando handshakes HTTP 402 con límites de gasto."
     }
   },
   "palette": {
@@ -260,6 +271,11 @@
       "title": "Agente OpenClaw",
       "sub": "conector de agente externo",
       "detail": "ejecuta agentes externos dentro del grafo"
+    },
+    "x402": {
+      "title": "Pago x402",
+      "sub": "recurso pago HTTP 402",
+      "detail": "paga APIs o agentes con límites"
     }
   },
   "howItWorks": "Cómo funciona",

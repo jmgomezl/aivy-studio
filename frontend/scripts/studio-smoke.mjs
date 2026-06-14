@@ -90,7 +90,9 @@ async function assertSafeKickoffTemplate(page) {
   await page.getByText('Live template unchanged', { exact: false }).waitFor({ state: 'visible', timeout: 10_000 });
   await page.getByText('Kickoff live template', { exact: false }).waitFor({ state: 'visible', timeout: 10_000 });
   assert.equal(await page.locator('.react-flow__node').count(), 8, 'Kickoff template should load with 8 nodes');
-  assert.equal(await page.locator('.template-card.starter').count(), 4, 'Studio should expose four local starter templates');
+  assert.equal(await page.locator('.template-card.starter').count(), 6, 'Studio should expose six local starter templates');
+  await page.getByText('OpenClaw Agent', { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
+  await page.getByText('x402 Payment', { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
 }
 
 async function assertStarterTemplates(page) {
@@ -99,6 +101,8 @@ async function assertStarterTemplates(page) {
     ['Supply Negotiator', 5, 4],
     ['DAO Approval', 5, 4],
     ['Escrow Release', 4, 3],
+    ['OpenClaw Connector', 5, 4],
+    ['x402 Paid Resource', 5, 4],
   ];
 
   for (const [name, nodeCount, edgeCount] of starters) {
@@ -116,23 +120,26 @@ async function assertCanvasBuilderFlow(page) {
   await page.getByText('Add nodes to preview simulation steps', { exact: false }).waitFor({ state: 'visible', timeout: 10_000 });
 
   await dropPalette(page, 'Agent', 430, 220);
-  await dropPalette(page, 'HCS-10 Channel', 690, 220);
-  await waitForGraphCounts(page, 2, 0);
-  await connectAgentToHcs(page);
-  await waitForGraphCounts(page, 2, 1);
+  await dropPalette(page, 'x402 Payment', 690, 220);
+  await dropPalette(page, 'HCS-10 Channel', 950, 220);
+  await waitForGraphCounts(page, 3, 0);
+  await connectNodes(page, 'Agent', 'x402 Payment');
+  await connectNodes(page, 'x402 Payment', 'HCS-10 Channel');
+  await waitForGraphCounts(page, 3, 2);
 
-  await page.getByText('message', { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
+  await page.getByText('pay', { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
+  await page.getByText('receipt', { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
   await page.getByText('Edge inspector', { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
 
-  await connectAgentToHcs(page);
+  await connectNodes(page, 'Agent', 'x402 Payment');
   await page.getByText('Connection already exists', { exact: false }).waitFor({ state: 'visible', timeout: 10_000 });
-  assert.equal(await page.locator('.react-flow__edge-path').count(), 1, 'Duplicate connection should not create another edge');
+  assert.equal(await page.locator('.react-flow__edge-path').count(), 2, 'Duplicate connection should not create another edge');
 
   await page.getByRole('button', { name: 'Step' }).click();
-  await page.waitForFunction(() => document.querySelector('.simulation-timeline')?.innerText.includes('1/3'), null, { timeout: 10_000 });
+  await page.waitForFunction(() => document.querySelector('.simulation-timeline')?.innerText.includes('1/5'), null, { timeout: 10_000 });
   assert.equal(await page.locator('.timeline-item.done').count(), 1);
   await page.getByRole('button', { name: 'Reset' }).click();
-  await page.waitForFunction(() => document.querySelector('.simulation-timeline')?.innerText.includes('0/3'), null, { timeout: 10_000 });
+  await page.waitForFunction(() => document.querySelector('.simulation-timeline')?.innerText.includes('0/5'), null, { timeout: 10_000 });
 }
 
 async function assertPersistenceFlow(page) {
@@ -188,10 +195,18 @@ async function waitForGraphCounts(page, nodes, edges) {
   );
 }
 
-async function connectAgentToHcs(page) {
-  const source = page.locator('.react-flow__node').filter({ hasText: 'Agent' }).locator('.kn-handle-source');
-  const target = page.locator('.react-flow__node').filter({ hasText: 'HCS-10 Channel' }).locator('.kn-handle-target');
+async function connectNodes(page, sourceLabel, targetLabel) {
+  const source = graphNodeByTitle(page, sourceLabel).locator('.kn-handle-source');
+  const target = graphNodeByTitle(page, targetLabel).locator('.kn-handle-target');
   await source.dragTo(target, { force: true, sourcePosition: { x: 2, y: 2 }, targetPosition: { x: 2, y: 2 } });
+}
+
+function graphNodeByTitle(page, title) {
+  return page.locator('.react-flow__node').filter({ has: page.locator('.kn-title', { hasText: new RegExp(`^${escapeRegExp(title)}$`) }) });
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 async function dropPalette(page, label, x, y) {
@@ -201,8 +216,8 @@ async function dropPalette(page, label, x, y) {
     const title = element.querySelector('.template-name')?.textContent?.trim() || 'Node';
     const sub = element.querySelector('.template-desc')?.textContent?.trim() || '';
     const icon = element.querySelector('.palette-icon')?.textContent?.trim() || '🤖';
-    const kindByTitle = { Agent: 'agent', 'HCS-10 Channel': 'hcs10' };
-    const colorByKind = { agent: '#A78BFA', hcs10: '#00FF87' };
+    const kindByTitle = { Agent: 'agent', 'HCS-10 Channel': 'hcs10', 'OpenClaw Agent': 'openclaw', 'x402 Payment': 'x402' };
+    const colorByKind = { agent: '#A78BFA', hcs10: '#00FF87', openclaw: '#F97316', x402: '#22C55E' };
     const kind = kindByTitle[title] || 'custom';
     return { kind, icon, color: colorByKind[kind] || '#A78BFA', title, sub, detail: '', config: {} };
   });
