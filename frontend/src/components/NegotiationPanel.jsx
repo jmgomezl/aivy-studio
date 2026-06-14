@@ -354,6 +354,28 @@ export default function NegotiationPanel({
         );
       })()}
 
+      {(n?.swap || n?.swapStatus) && (() => {
+        const es = i18n.language === 'es';
+        const done = n?.swap;
+        const failed = done && n.swap.status === 'failed';
+        const sym = (done && n.swap.tokenOut) || (n?.swapStatus && n.swapStatus.tokenOut) || 'USDC';
+        return (
+          <div className={`uni-badge ${failed ? 'uni-fail' : ''}`}>
+            <span className="uni-title">🦄 {failed ? (es ? 'Conversión Uniswap falló' : 'Uniswap conversion failed') : !done ? (es ? `Convirtiendo a ${sym}…` : `Converting to ${sym}…`) : (es ? `Pago en ${sym} vía Uniswap` : `Paid out in ${sym} via Uniswap`)}</span>
+            <span className="uni-meta">
+              {failed
+                ? (es ? 'la liquidación en KUSD se mantiene' : 'KUSD settlement stands')
+                : (es ? `liquidación cross-asset · ${n?.swap?.tokenIn || 'ETH'} → ${sym}` : `cross-asset settle · ${n?.swap?.tokenIn || 'ETH'} → ${sym}`)}
+            </span>
+            {done && n.swap.txHash && (
+              <a className="uni-tx" href={`https://sepolia.etherscan.io/tx/${n.swap.txHash}`} target="_blank" rel="noreferrer">
+                tx ↗
+              </a>
+            )}
+          </div>
+        );
+      })()}
+
       {n?.escrow && (() => {
         const es = i18n.language === 'es';
         const label =

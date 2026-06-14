@@ -16,6 +16,7 @@ export default function Sell() {
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('Other');
   const [requireHuman, setRequireHuman] = useState(false);
+  const [payoutToken, setPayoutToken] = useState('KUSD'); // KUSD (instant) | USDC (via Uniswap)
   const [status, setStatus] = useState(null); // null | 'sending' | listing | 'error'
   const [errMsg, setErrMsg] = useState(null);
   const [result, setResult] = useState(null);
@@ -68,6 +69,7 @@ export default function Sell() {
           category,
           minPriceHbar: p,
           requireHumanVerification: requireHuman,
+          payoutToken,
           photoDataUrl: photo,
           seller: inTelegram ? `tg:${tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.id}` : 'web-seller',
           authToken: tgAuth?.token || null,
@@ -197,6 +199,36 @@ export default function Sell() {
         </label>
         <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', marginBottom: 14, paddingLeft: 25 }}>
           {es ? 'World ID (Orb) o Telegram (privado, sin biometría).' : 'World ID (Orb) or Telegram (private, no biometrics).'}
+        </div>
+
+        <div style={{ fontSize: 12.5, color: 'var(--text)', marginBottom: 6 }}>
+          💱 {es ? 'Recibir el pago en' : 'Get paid in'}
+        </div>
+        <div style={{ display: 'flex', gap: 7, marginBottom: 4 }}>
+          {[
+            { k: 'KUSD', label: 'KUSD', sub: es ? 'al instante' : 'instant' },
+            { k: 'USDC', label: 'USDC', sub: es ? 'vía Uniswap' : 'via Uniswap' },
+          ].map((o) => (
+            <button
+              key={o.k}
+              type="button"
+              onClick={() => setPayoutToken(o.k)}
+              style={{
+                flex: 1, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                border: `1px solid ${payoutToken === o.k ? 'var(--accent)' : 'var(--border)'}`,
+                background: payoutToken === o.k ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
+                color: 'var(--text)',
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: 12.5 }}>{o.label}</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: payoutToken === o.k ? 'var(--accent)' : 'var(--muted)' }}>{o.sub}</div>
+            </button>
+          ))}
+        </div>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', marginBottom: 14, paddingLeft: 2 }}>
+          {payoutToken === 'USDC'
+            ? (es ? 'El comprador paga en USD; tu agente convierte a USDC vía Uniswap al cerrar.' : 'Buyer pays in USD; your agent converts to USDC via Uniswap on close.')
+            : (es ? 'El comprador paga en USD; recibes KUSD al instante (sin swap).' : 'Buyer pays in USD; you receive KUSD instantly (no swap).')}
         </div>
 
         {status === 'error' && errMsg && (

@@ -127,6 +127,9 @@ export default function Marketplace() {
                 {it.status === 'sold'
                   ? `${it.soldPrice} USD`
                   : it.price != null ? `${it.price} USD` : (es ? 'Reserva oculta' : 'Hidden reserve')}
+                {it.payoutToken === 'USDC' && (
+                  <span style={{ marginLeft: 6, fontFamily: 'var(--mono)', fontSize: 8.5, color: '#FF4D94', border: '1px solid rgba(255,0,122,.3)', borderRadius: 5, padding: '1px 5px', whiteSpace: 'nowrap' }} title={es ? 'El vendedor cobra en USDC vía Uniswap' : 'Seller is paid in USDC via Uniswap'}>🦄 USDC</span>
+                )}
               </span>
               {it.status === 'sold'
                 ? <span className="mkt-bid" style={{ color: 'var(--accent)', borderColor: 'rgba(0,255,135,.3)', cursor: 'default' }}>✓ {es ? 'Vendido' : 'Sold'}</span>

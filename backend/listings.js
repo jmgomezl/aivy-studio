@@ -89,7 +89,8 @@ const commitmentAbi = [
  * seller wallet, writes the active-listing file the agent reads, returns the
  * public listing (no secret price).
  */
-export async function createListing({ name, description, category, minPriceHbar, photoDataUrl, seller, sellerWalletEvm, requireHumanVerification }) {
+export async function createListing({ name, description, category, minPriceHbar, photoDataUrl, seller, sellerWalletEvm, requireHumanVerification, payoutToken }) {
+  const payout = payoutToken === 'USDC' ? 'USDC' : 'KUSD';
   if (!name || !Number(minPriceHbar)) throw new Error('name and minPriceHbar required');
   const id = `lst-${Date.now().toString(36)}`;
   const photoUrl = savePhoto(id, photoDataUrl);
@@ -141,6 +142,7 @@ export async function createListing({ name, description, category, minPriceHbar,
     seller: seller || 'anonymous',
     sellerEvm: wallet.evmAddress,
     requireHumanVerification: !!requireHumanVerification,
+    payoutToken: payout,
     ...(sellerWalletEvm ? { identityEvm: sellerWalletEvm } : {}),
     commitHash,
     commitmentTx,
@@ -153,7 +155,7 @@ export async function createListing({ name, description, category, minPriceHbar,
   persist();
 
   // Tell the agent which reserve to defend (server-only file, same box).
-  writeFileSync(ACTIVE_FILE, JSON.stringify({ id, name, minPriceHbar: Number(minPriceHbar), commitHash, commitmentTx, onChain, requireHumanVerification: !!requireHumanVerification, sellerWalletEvm: sellerWalletEvm || null }));
+  writeFileSync(ACTIVE_FILE, JSON.stringify({ id, name, minPriceHbar: Number(minPriceHbar), commitHash, commitmentTx, onChain, requireHumanVerification: !!requireHumanVerification, sellerWalletEvm: sellerWalletEvm || null, payoutToken: payout }));
 
   return listing; // public — no minPrice/salt
 }

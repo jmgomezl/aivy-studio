@@ -41,6 +41,7 @@ function refreshActiveListing() {
         ctx.productName = a.name || ctx.productName;
         ctx.activeListingId = a.id;
         ctx.sellerWalletEvm = a.sellerWalletEvm || null;
+        ctx.payoutToken = a.payoutToken || 'KUSD';
       }
     }
   } catch {}
@@ -133,8 +134,10 @@ export async function handleOffer(offer) {
       // Cross-asset leg: convert proceeds to the seller's preferred token via
       // Uniswap (best-effort, async — the EVM swap takes ~20s and must not block
       // the negotiation loop). Records the swap back on HCS-10.
-      if (crossAssetSettleEnabled()) {
-        void crossAssetSettle(client, TOPIC, { negotiationId: offer.negotiationId });
+      // Only when the seller chose a non-default payout token (opt-in) — keeps the
+      // real Sepolia swap budget for deals that actually want cross-asset payout.
+      if (crossAssetSettleEnabled() && ctx.payoutToken && ctx.payoutToken !== 'KUSD') {
+        void crossAssetSettle(client, TOPIC, { negotiationId: offer.negotiationId, preferredSymbol: ctx.payoutToken });
       }
 
       // Optional package insurance — buy the policy on-chain if the buyer opted in.

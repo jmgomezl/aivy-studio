@@ -149,6 +149,11 @@
 .sched-sub { font-size:10px; color:var(--muted); line-height:1.5; margin-top:5px; }
 .sched-tx { display:inline-block; margin-top:7px; font-family:var(--mono); font-size:9px; color:#A78BFA; text-decoration:none; border:1px solid rgba(130,89,239,.4); border-radius:5px; padding:3px 8px; }
 .sched-badge.sched-wait .sched-tx { color:#FFB800; border-color:rgba(255,184,0,.42); }
+.uni-badge { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:10px 16px 0; padding:8px 11px; border:1px solid rgba(255,0,122,.34); border-radius:9px; background:color-mix(in srgb, #FF007A 9%, transparent); }
+.uni-badge.uni-fail { border-color:rgba(255,90,90,.4); background:color-mix(in srgb, #FF5A5A 9%, transparent); }
+.uni-title { font-size:12px; font-weight:700; color:#FF4D94; }
+.uni-meta { font-family:var(--mono); font-size:10px; color:var(--muted); }
+.uni-tx { margin-left:auto; font-family:var(--mono); font-size:9px; color:#FF4D94; text-decoration:none; border:1px solid rgba(255,0,122,.34); border-radius:5px; padding:2px 7px; }
 /* Live conversational chat with the seller agent */
 .seller-chat { border:1px solid var(--border); border-radius:12px; background:var(--card); overflow:hidden; }
 .sc-head { padding:8px 12px; font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); border-bottom:1px solid var(--border); }
