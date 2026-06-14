@@ -138,6 +138,17 @@
 .pay-amt { font-family:var(--mono); font-size:12px; font-weight:700; color:var(--text); }
 .pay-meta { font-family:var(--mono); font-size:9px; color:var(--muted); width:100%; }
 .pay-tx { margin-left:auto; font-family:var(--mono); font-size:9px; color:#3FE08F; text-decoration:none; border:1px solid rgba(63,224,143,.4); border-radius:5px; padding:2px 7px; }
+.sched-badge { margin:10px 16px 0; padding:10px 12px; border:1px solid rgba(130,89,239,.42); border-radius:9px; background:color-mix(in srgb, #8259EF 12%, transparent); }
+.sched-badge.sched-wait { border-color:rgba(255,184,0,.45); background:color-mix(in srgb, #FFB800 10%, transparent); }
+.sched-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.sched-title { font-size:12px; font-weight:800; color:#A78BFA; }
+.sched-badge.sched-wait .sched-title { color:#FFB800; }
+.sched-pill { margin-left:auto; font-family:var(--mono); font-size:9px; font-weight:700; padding:2px 8px; border-radius:20px; }
+.sched-done { color:#A78BFA; background:rgba(130,89,239,.16); border:1px solid rgba(130,89,239,.4); }
+.sched-pending { color:#FFB800; background:rgba(255,184,0,.14); border:1px solid rgba(255,184,0,.42); }
+.sched-sub { font-size:10px; color:var(--muted); line-height:1.5; margin-top:5px; }
+.sched-tx { display:inline-block; margin-top:7px; font-family:var(--mono); font-size:9px; color:#A78BFA; text-decoration:none; border:1px solid rgba(130,89,239,.4); border-radius:5px; padding:3px 8px; }
+.sched-badge.sched-wait .sched-tx { color:#FFB800; border-color:rgba(255,184,0,.42); }
 /* Live conversational chat with the seller agent */
 .seller-chat { border:1px solid var(--border); border-radius:12px; background:var(--card); overflow:hidden; }
 .sc-head { padding:8px 12px; font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); border-bottom:1px solid var(--border); }

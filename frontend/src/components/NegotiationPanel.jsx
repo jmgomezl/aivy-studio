@@ -272,6 +272,32 @@ export default function NegotiationPanel({
         </div>
       )}
 
+      {n?.settlement && (() => {
+        const es = i18n.language === 'es';
+        const pending = n.settlement.mode === 'scheduled-pending';
+        const sid = n.settlement.scheduleId;
+        return (
+          <div className={`sched-badge ${pending ? 'sched-wait' : ''}`}>
+            <div className="sched-row">
+              <span className="sched-title">⏱ {es ? 'Transacción Programada de Hedera' : 'Hedera Scheduled Transaction'}</span>
+              <span className={`sched-pill ${pending ? 'sched-pending' : 'sched-done'}`}>
+                {pending ? (es ? 'esperando co-firma Ledger' : 'awaiting Ledger co-sign') : (es ? 'auto-ejecutada ✓' : 'auto-executed ✓')}
+              </span>
+            </div>
+            <div className="sched-sub">
+              {pending
+                ? (es ? 'La liquidación se propuso on-chain como transacción programada y queda pendiente hasta que el hardware wallet del vendedor la co-firme.' : 'Settlement was proposed on-chain as a scheduled transaction and stays pending until the seller’s hardware wallet co-signs it.')
+                : (es ? 'La liquidación se propuso on-chain como transacción programada y se ejecutó automáticamente al firmarla el agente.' : 'Settlement was proposed on-chain as a scheduled transaction and executed automatically once the agent signed it.')}
+            </div>
+            {sid && (
+              <a className="sched-tx" href={`https://hashscan.io/testnet/schedule/${sid}`} target="_blank" rel="noreferrer">
+                {sid} · {es ? 'ver en Hashscan' : 'verify on Hashscan'} ↗
+              </a>
+            )}
+          </div>
+        );
+      })()}
+
       {n?.reveal && (
         <div className="reveal-sec">
           <div className="reveal-hdr">{t('minRevealed')}</div>
