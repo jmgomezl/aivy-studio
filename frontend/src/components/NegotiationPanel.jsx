@@ -73,8 +73,13 @@ export default function NegotiationPanel({
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages.length, evaluating]);
 
+  // Voice narration is PAUSED (ElevenLabs opt-in). Gate all playback so no audio
+  // ever plays, even from a stale verdict event that still carries an `audio` path.
+  const VOICE_ENABLED = false;
+
   // Speak the verdict: play the agent's ElevenLabs audio when it arrives.
   useEffect(() => {
+    if (!VOICE_ENABLED) return;
     const v = n?.verdict;
     if (!v?.audio || playedRef.current.has(v.sequence)) return;
     playedRef.current.add(v.sequence);
@@ -82,6 +87,7 @@ export default function NegotiationPanel({
   }, [n?.verdict]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function enableSound() {
+    if (!VOICE_ENABLED) return;
     setSoundBlocked(false);
     const v = n?.verdict;
     if (v?.audio) new Audio(assetUrl(v.audio)).play().catch(() => {});
@@ -272,28 +278,41 @@ export default function NegotiationPanel({
         </div>
       )}
 
-      {verdict && !dealClosed && !n?.reveal && (
+      {/* COUNTER / holding-out — a genuinely partial round: the agent wants more. */}
+      {verdict && !dealClosed && !n?.reveal && verdict.decision === 'counter' && (
         <div className={`verdict live ${negotiationLive ? 'pulsing' : ''}`}>
           <div className="verdict-live-head">
             <span className="verdict-live-dot" />
             {negotiationLive ? t('negotiationLivePartial') : t('roundPartial')}
           </div>
           <div className="verdict-title" style={{ color: 'var(--yellow)', fontSize: 16 }}>
-            {verdict.decision === 'counter' && verdict.counterPrice
-              ? t('agentCountered', { price: verdict.counterPrice })
-              : t('agentHoldingOut')}
+            {verdict.counterPrice ? t('agentCountered', { price: verdict.counterPrice }) : t('agentHoldingOut')}
           </div>
           <div className="verdict-reason">{isAgentBuyer ? t('agentsNegotiating') : t('keepNegotiating')}</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <a className="verdict-tx" href={`https://hashscan.io/testnet/topic/0.0.9217269`} target="_blank" rel="noreferrer">
-              {t('viewOnHashscan')}
-            </a>
-            {(soundBlocked || verdict.audio) && (
-              <button className="verdict-tx" style={{ cursor: 'pointer', background: 'transparent' }} onClick={enableSound}>
-                🔊
-              </button>
-            )}
+          <a className="verdict-tx" href={`https://hashscan.io/testnet/topic/0.0.9217269`} target="_blank" rel="noreferrer">
+            {t('viewOnHashscan')}
+          </a>
+        </div>
+      )}
+
+      {/* REJECT — the agent declined THIS offer. A decision, not "holding out". */}
+      {verdict && !dealClosed && !n?.reveal && verdict.decision !== 'counter' && (
+        <div className="verdict live declined">
+          <div className="verdict-live-head" style={{ color: 'var(--red)' }}>
+            <span className="verdict-live-dot" style={{ background: 'var(--red)' }} />
+            {i18n.language === 'es' ? 'RECHAZADA · esta oferta' : 'DECLINED · this offer'}
           </div>
+          <div className="verdict-title" style={{ color: 'var(--red)', fontSize: 16 }}>
+            {i18n.language === 'es' ? 'El agente no aceptó esta oferta' : 'Agent passed on this offer'}
+          </div>
+          <div className="verdict-reason">
+            {i18n.language === 'es'
+              ? 'Por debajo del mínimo, o la historia no convenció. Una oferta más fuerte (precio o historia) aún puede ganarla.'
+              : 'Below the reserve, or the story didn’t land. A stronger offer — price or story — can still win it.'}
+          </div>
+          <a className="verdict-tx" href={`https://hashscan.io/testnet/topic/0.0.9217269`} target="_blank" rel="noreferrer">
+            {t('viewOnHashscan')}
+          </a>
         </div>
       )}
 
