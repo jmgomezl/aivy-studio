@@ -24,7 +24,7 @@ const POLL_MS = Number(process.env.AGENT_POLL_MS || 2500);
 import { existsSync, readFileSync } from 'node:fs';
 
 const ctx = {
-  productName: process.env.PRODUCT_NAME || 'Specialty Coffee — Single Origin',
+  productName: process.env.PRODUCT_NAME || 'this item',
   currency: 'USD',
   minPrice: Number(process.env.SELLER_MIN_PRICE_HBAR || 25),
   history: [],

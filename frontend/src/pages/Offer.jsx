@@ -35,17 +35,23 @@ export default function Offer() {
 
   useEffect(() => {
     fetch('/api/world/config').then((r) => r.json()).then((c) => setWorldEnabled(!!c.enabled)).catch(() => {});
-    // Show the actual active listing (name + photo) — not a hardcoded item.
+  }, []);
+
+  // Show the ACTUAL active listing (name + photo) — refetch on each new negotiation
+  // so a sold/changed item doesn't leave a stale (or hardcoded) product in the header.
+  useEffect(() => {
     fetch('/api/listings')
       .then((r) => r.json())
       .then((d) => {
-        if (d.active) {
+        if (d.active?.id) {
           const full = (d.listings || []).find((l) => l.id === d.active.id);
           setActiveItem({ name: d.active.name, photoUrl: full?.photoUrl, requireHumanVerification: !!d.active.requireHumanVerification });
+        } else {
+          setActiveItem(null); // no active listing (e.g. sold) — don't fall back to a phantom item
         }
       })
       .catch(() => {});
-  }, []);
+  }, [negotiationId]);
 
   const tg = window.Telegram?.WebApp;
   const buyer = useMemo(() => {

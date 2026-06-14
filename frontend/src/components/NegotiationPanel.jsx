@@ -146,7 +146,7 @@ export default function NegotiationPanel({
             {item?.photoUrl ? <img src={assetUrl(item.photoUrl)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📦'}
           </div>
           <div>
-            <div className="neg-item-name">{item?.name || t('coffeeName')}</div>
+            <div className="neg-item-name">{item?.name || (i18n.language === 'es' ? 'Sin listado activo' : 'No active listing')}</div>
             <div className="neg-item-sub">Kickoff Seller Agent · 0.0.9217340 · Hedera</div>
             {agentIdentity && (
               <a className="erc8004-badge" href={agentIdentity.explorer} target="_blank" rel="noreferrer" title={`ERC-8004 registry ${agentIdentity.registry}`}>
