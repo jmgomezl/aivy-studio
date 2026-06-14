@@ -516,7 +516,23 @@ async function poll() {
   }
 }
 
-server.listen(PORT, () => {
+// Start from the topic TIP by default — never replay months of historical
+// negotiations into the live feed (and never re-run markSold on old reveals).
+// Set BACKEND_REPLAY_HISTORY=true to backfill the last events instead.
+async function initStartSeq() {
+  if (process.env.BACKEND_REPLAY_HISTORY === 'true') return;
+  try {
+    const res = await fetch(`${process.env.MIRROR_NODE_URL || 'https://testnet.mirrornode.hedera.com'}/api/v1/topics/${TOPIC}/messages?order=desc&limit=1`);
+    const data = await res.json();
+    state.lastSeq = data.messages?.[0]?.sequence_number ?? 0;
+    console.log(`[backend] starting from topic tip — seq ${state.lastSeq}`);
+  } catch (err) {
+    console.warn('[backend] tip fetch failed, starting from 0:', err.message);
+  }
+}
+
+server.listen(PORT, async () => {
   console.log(`[backend] http+ws on :${PORT} — relaying topic ${TOPIC}`);
+  await initStartSeq();
   poll();
 });
