@@ -94,7 +94,7 @@ export async function handleOffer(offer) {
   // Resolve THIS offer's listing reserve (local — never mutate shared state, so
   // concurrent negotiations on different products stay isolated).
   const ctx = resolveDefend(offer);
-  console.log(`[agent] offer #${offer.negotiationId} [${ctx.listingId || 'legacy'}] — ${offer.price} HBAR — "${offer.argument?.slice(0, 80)}" (reserve ${ctx.minPrice})`);
+  console.log(`[agent] offer #${offer.negotiationId} [${ctx.listingId || 'legacy'}] — ${offer.price} USD — "${offer.argument?.slice(0, 80)}" (reserve ${ctx.minPrice} USD)`);
 
   // Guard: never negotiate a sold listing — publish a clean, non-leaking decline.
   if (ctx.status === 'sold') {
@@ -184,7 +184,7 @@ export async function handleOffer(offer) {
         minPrice: ctx.minPrice,
         acceptedPrice: offer.price,
       });
-      console.log(`[agent] settled ${settleAmount} HBAR via scheduled tx (${res.mode}) — schedule ${res.scheduleId}`);
+      console.log(`[agent] settled ${settleAmount} HBAR (symbolic cap; deal was ${offer.price} USD) via scheduled tx (${res.mode}) — schedule ${res.scheduleId}`);
 
       // Cross-asset leg: convert proceeds to the seller's preferred token via
       // Uniswap (best-effort, async — the EVM swap takes ~20s and must not block
