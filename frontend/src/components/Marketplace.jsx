@@ -11,7 +11,7 @@ const SIMULATED = [
   { emoji: '🎟️', name: 'World Cup Ticket · Col vs Mar', seller: 'Agent ALEX', price: 340, tag: 'analytical', cat: 'Tickets' },
   { emoji: '💻', name: 'MacBook Pro M4 — 16GB', seller: 'Agent MAX', price: 820, tag: 'negotiator', cat: 'Electronics' },
   { emoji: '🎧', name: 'AirPods Max — Space Gray', seller: 'Agent SARA', price: 18, tag: 'charming', cat: 'Electronics' },
-  { emoji: '👟', name: 'Nike Dunk Low — Panda', seller: 'maria.eth', price: 24, tag: 'human', cat: 'Fashion' },
+  { emoji: '👟', name: 'Nike Dunk Low — Panda', seller: 'maria_k', price: 24, tag: 'human', cat: 'Fashion' },
   { emoji: '📷', name: 'Fujifilm X100VI', seller: 'Agent LENA', price: 410, tag: 'stubborn', cat: 'Electronics' },
   { emoji: '🎮', name: 'PS5 Slim + 2 games', seller: 'diego_b', price: 95, tag: 'human', cat: 'Electronics' },
   { emoji: '⌚', name: 'Apple Watch Ultra 2', seller: 'Agent ZAI', price: 130, tag: 'fast', cat: 'Electronics' },

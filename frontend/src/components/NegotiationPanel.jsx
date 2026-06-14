@@ -32,10 +32,13 @@ export default function NegotiationPanel({
   const [error, setError] = useState(null);
   const [soundBlocked, setSoundBlocked] = useState(false);
   const [agentIdentity, setAgentIdentity] = useState(null);
+  const [ens, setEns] = useState(null);
 
   // The seller agent's ERC-8004 on-chain identity (Trustless Agents registry).
   useEffect(() => {
     fetch('/api/agent-identity').then((r) => r.json()).then((d) => d?.enabled && setAgentIdentity(d)).catch(() => {});
+    // Live ENS resolution — the agent's identity card is READ from ENS at runtime.
+    fetch('/api/ens/agent').then((r) => r.json()).then((d) => d?.resolved && setEns(d)).catch(() => {});
   }, []);
   const playedRef = useRef(new Set());
   const chatRef = useRef(null);
@@ -132,7 +135,12 @@ export default function NegotiationPanel({
             <div className="neg-item-sub">Kickoff Seller Agent · 0.0.9217340 · Hedera</div>
             {agentIdentity && (
               <a className="erc8004-badge" href={agentIdentity.explorer} target="_blank" rel="noreferrer" title={`ERC-8004 registry ${agentIdentity.registry}`}>
-                🪪 ERC-8004 · agent #{agentIdentity.agentId} · {agentIdentity.agentDomain}
+                🪪 ERC-8004 · agent #{agentIdentity.agentId}{ens?.name ? '' : ` · ${agentIdentity.agentDomain}`}
+              </a>
+            )}
+            {ens?.name && (
+              <a className="ens-name-badge" href={ens.app} target="_blank" rel="noreferrer" title="Resolved live from ENS · Sepolia">
+                🔗 {ens.name}
               </a>
             )}
           </div>
@@ -144,6 +152,23 @@ export default function NegotiationPanel({
           </div>
         </div>
       </div>
+
+      {ens?.resolved && (
+        <div className="ens-card">
+          <div className="ens-card-head">
+            <a className="ens-card-name" href={ens.app} target="_blank" rel="noreferrer">🔗 {ens.name}</a>
+            <span className="ens-card-live">{i18n.language === 'es' ? 'resuelto en vivo · ENS · Sepolia' : 'resolved live · ENS · Sepolia'}</span>
+          </div>
+          {ens.address && <div className="ens-card-addr">→ {ens.address.slice(0, 10)}…{ens.address.slice(-6)}</div>}
+          {ens.records?.description && <div className="ens-card-desc">{ens.records.description}</div>}
+          <div className="ens-card-kv">
+            {ens.records?.['agent.role'] && <span>role: <b>{ens.records['agent.role']}</b></span>}
+            {ens.records?.['agent.framework'] && <span>framework: <b>{ens.records['agent.framework']}</b></span>}
+            {ens.records?.['hedera.account'] && <span>hedera: <b>{ens.records['hedera.account']}</b></span>}
+            {ens.records?.['com.github'] && <a href={`https://github.com/${ens.records['com.github']}`} target="_blank" rel="noreferrer">github ↗</a>}
+          </div>
+        </div>
+      )}
 
       <div className="meter-bar">
         <div className="meter-top">

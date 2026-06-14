@@ -29,6 +29,7 @@ import {
   verifySession,
 } from './telegram-auth.js';
 import { readBalances } from './lib/faucet.js';
+import { resolveAgent, reverseName } from './ens.js';
 
 const TELEGRAM_BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME || 'cryptokickoffbot';
 
@@ -289,6 +290,27 @@ app.post('/api/chat', async (req, res) => {
 });
 
 // ── ERC-8004 agent identity (Trustless Agents — on-chain registry on Hedera EVM) ──
+// Live ENS resolution — the agent identity card is READ from ENS at request
+// time (forward: name → address + text records). Nothing hard-coded.
+app.get('/api/ens/agent', async (_, res) => {
+  try {
+    res.json({ ok: true, ...(await resolveAgent()) });
+  } catch (err) {
+    res.status(502).json({ ok: false, error: err.message });
+  }
+});
+
+// Reverse resolution — any EVM address → its primary .eth name (live, or null).
+app.get('/api/ens/reverse', async (req, res) => {
+  const address = req.query.address;
+  if (!address) return res.status(400).json({ error: 'address required' });
+  try {
+    res.json({ ok: true, address, name: await reverseName(address) });
+  } catch (err) {
+    res.status(502).json({ ok: false, error: err.message });
+  }
+});
+
 app.get('/api/agent-identity', (_, res) => {
   const registry = process.env.ERC8004_REGISTRY_ADDRESS || null;
   if (!registry) return res.json({ enabled: false });

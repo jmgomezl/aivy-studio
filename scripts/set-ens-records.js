@@ -23,7 +23,7 @@ const resolverAbi = [
 ];
 
 const texts = [
-  ['description', 'Kickoff seller agent — autonomous specialty-coffee negotiator on Hedera.'],
+  ['description', 'Kickoff seller agent — autonomous on-chain negotiator on Hedera. Weighs price + story, settles via Scheduled Transactions, cross-asset payout via Uniswap.'],
   ['url', 'https://kickoff.bot'],
   ['com.github', 'jmgomezl/aivy-studio'],
   ['hedera.account', process.env.SELLER_AGENT_ACCOUNT_ID || '0.0.9217340'],
