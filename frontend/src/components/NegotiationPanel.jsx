@@ -53,6 +53,9 @@ export default function NegotiationPanel({
   // agent that will counter, or we're re-evaluating). Show it as a LIVE, partial
   // round, not a harsh final "rejected".
   const dealClosed = verdict?.decision === 'accept';
+  // Terminal WITHOUT a deal: a reject, or the buyer agent stopped. The negotiation
+  // is over — close the input and present it as a clear stop, not an open round.
+  const closedNoDeal = !dealClosed && !n?.reveal && (verdict?.decision === 'reject' || !!n?.buyerEnded);
   const isAgentBuyer = String(lastOffer?.buyer ?? '').startsWith('agent:');
   const negotiationLive =
     !!verdict && !dealClosed && !n?.reveal &&
@@ -288,7 +291,7 @@ export default function NegotiationPanel({
           ? (es ? 'la negociación expiró' : 'the negotiation timed out')
           : (es ? 'el comprador no llegó al mínimo del vendedor' : 'the buyer couldn’t reach the seller’s minimum');
         return (
-          <div className="verdict live declined">
+          <div className="verdict declined">
             <div className="verdict-live-head" style={{ color: 'var(--muted)' }}>
               <span className="verdict-live-dot" style={{ background: 'var(--muted)' }} />
               {es ? 'NEGOCIACIÓN TERMINADA · SIN TRATO' : 'NEGOTIATION ENDED · NO DEAL'}
@@ -325,18 +328,18 @@ export default function NegotiationPanel({
 
       {/* REJECT — the agent declined THIS offer. A decision, not "holding out". */}
       {verdict && !dealClosed && !n?.reveal && !n?.buyerEnded && verdict.decision !== 'counter' && (
-        <div className="verdict live declined">
+        <div className="verdict declined">
           <div className="verdict-live-head" style={{ color: 'var(--red)' }}>
             <span className="verdict-live-dot" style={{ background: 'var(--red)' }} />
-            {i18n.language === 'es' ? 'RECHAZADA · esta oferta' : 'DECLINED · this offer'}
+            {i18n.language === 'es' ? 'RECHAZADA · negociación cerrada' : 'DECLINED · negotiation closed'}
           </div>
           <div className="verdict-title" style={{ color: 'var(--red)', fontSize: 16 }}>
-            {i18n.language === 'es' ? 'El agente no aceptó esta oferta' : 'Agent passed on this offer'}
+            {i18n.language === 'es' ? 'El agente rechazó esta oferta' : 'The agent declined this offer'}
           </div>
           <div className="verdict-reason">
             {i18n.language === 'es'
-              ? 'Por debajo del mínimo, o la historia no convenció. Una oferta más fuerte (precio o historia) aún puede ganarla.'
-              : 'Below the reserve, or the story didn’t land. A stronger offer — price or story — can still win it.'}
+              ? 'Por debajo del mínimo, o la historia no convenció. Inicia una nueva negociación para intentarlo con una oferta más fuerte.'
+              : 'Below the reserve, or the story didn’t land. Start a new negotiation to try again with a stronger offer.'}
           </div>
           <a className="verdict-tx" href={`https://hashscan.io/testnet/topic/0.0.9217269`} target="_blank" rel="noreferrer">
             {t('viewOnHashscan')}
@@ -513,7 +516,7 @@ export default function NegotiationPanel({
         );
       })()}
 
-      {inputEnabled && !dealClosed && (
+      {inputEnabled && !dealClosed && !closedNoDeal && (
         <div className="offer-input">
           <div className="input-row">
             <div className="amt-wrap">
