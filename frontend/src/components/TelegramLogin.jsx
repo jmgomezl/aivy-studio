@@ -4,6 +4,7 @@
 // a signed session. Inside the Mini App the identity is already known, so this
 // renders nothing. Auth persists in localStorage and is shared across pages.
 import { useEffect, useRef, useState } from 'react';
+import { tierOf } from '../lib/reputation.js';
 
 const AUTH_KEY = 'kickoff-tg-auth';
 
@@ -21,7 +22,15 @@ export default function TelegramLogin({ onChange, es = false, role = 'seller' })
   const [auth, setAuth] = useState(readTgAuth);
   const [config, setConfig] = useState(null);
   const [copied, setCopied] = useState('');
+  const [rep, setRep] = useState(null);
   const widgetRef = useRef(null);
+
+  // Pull the signed-in user's reputation (sales / purchases / tier).
+  useEffect(() => {
+    const id = auth?.profile?.username ? `tg:${auth.profile.username}` : auth?.profile?.telegramId ? `tg:${auth.profile.telegramId}` : null;
+    if (!id) return setRep(null);
+    fetch(`/api/reputation?id=${encodeURIComponent(id)}`).then((r) => r.json()).then(setRep).catch(() => {});
+  }, [auth]);
 
   function copy(value, key) {
     if (!value || !navigator.clipboard) return;
@@ -101,6 +110,17 @@ export default function TelegramLogin({ onChange, es = false, role = 'seller' })
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
               {role === 'buyer' ? (es ? 'Ofertando como' : 'Offering as') : (es ? 'Listando como' : 'Listing as')} @{auth.profile?.username || auth.profile?.telegramId}
             </div>
+            {rep && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, margin: '2px 0 1px', flexWrap: 'wrap' }}>
+                <span style={{ color: tierOf(rep).color, fontWeight: 700, fontSize: 10 }}>
+                  {tierOf(rep).icon} {rep.tier === 'new' ? (es ? 'Nuevo' : 'New') : rep.tier === 'gold' ? (es ? 'Top' : 'Top seller') : tierOf(rep).label}
+                </span>
+                <span style={{ color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 9 }}>
+                  {rep.sales} {es ? 'ventas' : 'sales'} · {rep.buys} {es ? 'compras' : 'buys'}
+                  {rep.volumeHbar ? ` · ${rep.volumeHbar} HBAR` : ''}
+                </span>
+              </div>
+            )}
             {(() => {
               const evm = auth.profile?.walletEvm || '';
               // One key → both chains: EVM address + its Hedera EVM-alias account.

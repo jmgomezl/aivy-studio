@@ -19,6 +19,7 @@ import { rpSignature, verifyProof, worldIdEnabled, worldConfig } from './worldid
 import { validateWorkflow, WorkflowValidationError } from './workflow-schema.js';
 import { saveWorkflow, getWorkflow, listWorkflows } from './workflows.js';
 import { executeDryRun } from './workflow-executor.js';
+import { computeReputation } from './reputation.js';
 import {
   telegramAuthEnabled,
   verifyTelegramAuth,
@@ -229,6 +230,15 @@ app.post('/api/auth/telegram', async (req, res) => {
     console.error('[api/auth/telegram]', err.message);
     res.status(500).json({ ok: false, error: 'could not provision seller wallet' });
   }
+});
+
+// ── Reputation (eBay-style trust: sales / purchases / tier) ──
+app.get('/api/reputation', (req, res) => {
+  const rep = computeReputation(getPublicListings(), state.negotiations);
+  if (req.query.id) {
+    return res.json(rep[req.query.id] || { id: req.query.id, sales: 0, buys: 0, listings: 0, offers: 0, volumeHbar: 0, deals: 0, tier: 'new' });
+  }
+  res.json({ reputation: rep });
 });
 
 // ── Seller listings ──

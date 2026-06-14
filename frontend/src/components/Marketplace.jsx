@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { assetUrl } from '../lib/asset.js';
+import { tierOf } from '../lib/reputation.js';
 
 const SIMULATED = [
   { emoji: '🎟️', name: 'World Cup Ticket · Col vs Mar', seller: 'Agent ALEX', price: 340, tag: 'analytical', cat: 'Tickets' },
@@ -31,6 +32,11 @@ export default function Marketplace() {
   const [newId, setNewId] = useState(null);
   const [query, setQuery] = useState('');
   const [cat, setCat] = useState('All');
+  const [reps, setReps] = useState({});
+
+  useEffect(() => {
+    fetch('/api/reputation').then((r) => r.json()).then((d) => setReps(d.reputation || {})).catch(() => {});
+  }, []);
 
   // Seed with real listings + a rotating slice of simulated ones.
   useEffect(() => {
@@ -110,6 +116,11 @@ export default function Marketplace() {
             <div className="mkt-meta">
               <span className="mkt-dot" style={{ background: tagColor[it.tag] || 'var(--muted)' }} />
               {it.seller}
+              {it.real && reps[it.seller] && (reps[it.seller].sales > 0 || reps[it.seller].listings > 1) && (
+                <span className="mkt-rep" style={{ color: tierOf(reps[it.seller]).color }} title={`${reps[it.seller].sales} ${es ? 'ventas' : 'sales'}`}>
+                  {tierOf(reps[it.seller]).icon} {reps[it.seller].sales}
+                </span>
+              )}
             </div>
             <div className="mkt-foot">
               <span className="mkt-price">
