@@ -53,13 +53,19 @@ export default function NegotiationPanel({
   // agent that will counter, or we're re-evaluating). Show it as a LIVE, partial
   // round, not a harsh final "rejected".
   const dealClosed = verdict?.decision === 'accept';
-  // Terminal WITHOUT a deal: a reject, or the buyer agent stopped. The negotiation
-  // is over — close the input and present it as a clear stop, not an open round.
-  const closedNoDeal = !dealClosed && !n?.reveal && (verdict?.decision === 'reject' || !!n?.buyerEnded);
   const isAgentBuyer = String(lastOffer?.buyer ?? '').startsWith('agent:');
+  // The round is still moving if we're evaluating or a NEWER offer landed after
+  // the last verdict — a stale reject must NOT read as "closed" mid-negotiation.
+  const stillActive = evaluating || (lastOffer?.sequence ?? 0) > (verdict?.sequence ?? 0);
+  // Terminal WITHOUT a deal: the autonomous buyer agent stopped, OR a HUMAN got a
+  // reject that is the current state (no newer offer, not re-evaluating). An agent
+  // buyer keeps going between rounds, so its reject only closes once it ends.
+  const endedNoDeal = !dealClosed && !n?.reveal && !!n?.buyerEnded;
+  const declinedClosed = !dealClosed && !n?.reveal && !endedNoDeal && verdict?.decision === 'reject' && !isAgentBuyer && !stillActive;
+  const closedNoDeal = endedNoDeal || declinedClosed;
   const negotiationLive =
-    !!verdict && !dealClosed && !n?.reveal &&
-    ((lastOffer?.sequence ?? 0) > (verdict?.sequence ?? 0) || isAgentBuyer || n?.status === 'evaluating');
+    !!verdict && !dealClosed && !n?.reveal && !closedNoDeal &&
+    (stillActive || isAgentBuyer);
 
   // Interleave offers + reasoning + verdict into a chat timeline by sequence.
   const messages = useMemo(() => {
@@ -282,7 +288,7 @@ export default function NegotiationPanel({
       )}
 
       {/* ENDED — the autonomous buyer agent stopped without a deal (inconclusive). */}
-      {n?.buyerEnded && !dealClosed && !n?.reveal && (() => {
+      {endedNoDeal && (() => {
         const es = i18n.language === 'es';
         const st = n.buyerEnded.status;
         const why = st === 'budget-exceeded'
@@ -309,8 +315,9 @@ export default function NegotiationPanel({
         );
       })()}
 
-      {/* COUNTER / holding-out — a genuinely partial round: the agent wants more. */}
-      {verdict && !dealClosed && !n?.reveal && !n?.buyerEnded && verdict.decision === 'counter' && (
+      {/* LIVE / PARTIAL — counter, an agent buyer mid-rounds, or a newer offer being
+          evaluated. Not closed: the negotiation is still moving. */}
+      {verdict && !dealClosed && !n?.reveal && !closedNoDeal && (
         <div className={`verdict live ${negotiationLive ? 'pulsing' : ''}`}>
           <div className="verdict-live-head">
             <span className="verdict-live-dot" />
@@ -326,8 +333,8 @@ export default function NegotiationPanel({
         </div>
       )}
 
-      {/* REJECT — the agent declined THIS offer. A decision, not "holding out". */}
-      {verdict && !dealClosed && !n?.reveal && !n?.buyerEnded && verdict.decision !== 'counter' && (
+      {/* DECLINED — a human got a reject that is the CURRENT, settled state. A clear stop. */}
+      {declinedClosed && (
         <div className="verdict declined">
           <div className="verdict-live-head" style={{ color: 'var(--red)' }}>
             <span className="verdict-live-dot" style={{ background: 'var(--red)' }} />
