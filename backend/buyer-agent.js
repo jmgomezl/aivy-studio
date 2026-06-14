@@ -4,9 +4,15 @@
 import { TopicMessageSubmitTransaction } from '@hashgraph/sdk';
 import { existsSync, readFileSync } from 'node:fs';
 
-// The product the buyer agent is negotiating for (the active listing).
-function activeProduct() {
+// The product the buyer agent is negotiating for. Multi-product: resolve the
+// listing's name by id from the server-written reserves file; fall back to the
+// legacy single active-listing file.
+function productFor(listingId) {
   try {
+    if (listingId && existsSync('data/reserves.json')) {
+      const r = JSON.parse(readFileSync('data/reserves.json', 'utf8'))[listingId];
+      if (r?.name) return r.name;
+    }
     if (existsSync('data/active-listing.json')) {
       const a = JSON.parse(readFileSync('data/active-listing.json', 'utf8'));
       if (a?.name) return a.name;
@@ -52,7 +58,7 @@ export function getSession(negotiationId) {
  * from the shared backend state (chain-sourced). Returns immediately; progress
  * is visible through the normal event stream.
  */
-export function deployBuyerAgent({ client, topicId, state, negotiationId, strategy, maxBudget, instructions }) {
+export function deployBuyerAgent({ client, topicId, state, negotiationId, listingId, strategy, maxBudget, instructions }) {
   if (!STRATEGIES[strategy]) throw new Error(`unknown strategy: ${strategy}`);
   if (sessions.has(negotiationId)) throw new Error('buyer agent already active for this negotiation');
   const instr = (instructions || '').trim().slice(0, 600);
@@ -73,6 +79,7 @@ export function deployBuyerAgent({ client, topicId, state, negotiationId, strate
           op: 'message',
           type: 'offer',
           negotiationId,
+          ...(listingId ? { listingId } : {}),
           buyer: `agent:${strategy}`,
           price,
           argument,
@@ -146,7 +153,7 @@ export function deployBuyerAgent({ client, topicId, state, negotiationId, strate
 
   async function run() {
     const steps = STRATEGIES[strategy];
-    const product = activeProduct();
+    const product = productFor(listingId);
     const useLLM = !!(instr && process.env.OPENAI_API_KEY);
     const totalRounds = useLLM ? 4 : steps.length;
     let lastPrice = 0;
