@@ -27,6 +27,7 @@ import {
   getOrCreateSellerWallet,
   issueSession,
   verifySession,
+  getSubnameByAddress,
 } from './telegram-auth.js';
 import { readBalances } from './lib/faucet.js';
 import { resolveAgent, reverseName } from './ens.js';
@@ -254,6 +255,7 @@ app.post('/api/auth/telegram', async (req, res) => {
         funded: !!wallet.funded,
         fundedUsd: wallet.fundedUsd || 0,
         gasHbar: wallet.gasHbar || 0,
+        ensSubname: wallet.ensSubname || null, // <name>.kickoffseller.eth (once minted)
       },
     });
   } catch (err) {
@@ -298,6 +300,24 @@ app.get('/api/ens/agent', async (_, res) => {
   } catch (err) {
     res.status(502).json({ ok: false, error: err.message });
   }
+});
+
+// Generic live resolution of any ENS name (incl. fleet subnames) → addr + records.
+app.get('/api/ens/resolve', async (req, res) => {
+  const name = req.query.name;
+  if (!name) return res.status(400).json({ error: 'name required' });
+  try {
+    res.json({ ok: true, ...(await resolveAgent(name)) });
+  } catch (err) {
+    res.status(502).json({ ok: false, error: err.message });
+  }
+});
+
+// The fleet ENS subname minted for a managed wallet (by EVM address), once ready.
+app.get('/api/ens/subname', (req, res) => {
+  const address = req.query.address;
+  if (!address) return res.status(400).json({ error: 'address required' });
+  res.json({ ok: true, address, subname: getSubnameByAddress(address) });
 });
 
 // Reverse resolution — any EVM address → its primary .eth name (live, or null).

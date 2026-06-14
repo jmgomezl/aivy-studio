@@ -24,6 +24,7 @@ export default function TelegramLogin({ onChange, es = false, role = 'seller' })
   const [copied, setCopied] = useState('');
   const [rep, setRep] = useState(null);
   const [bal, setBal] = useState(null);
+  const [subname, setSubname] = useState(null);
   const widgetRef = useRef(null);
 
   // Pull the signed-in user's reputation (sales / purchases / tier).
@@ -42,6 +43,24 @@ export default function TelegramLogin({ onChange, es = false, role = 'seller' })
       .then((r) => r.json())
       .then((b) => { if (on && b.ok) setBal(b); })
       .catch(() => {});
+    return () => { on = false; };
+  }, [auth]);
+
+  // The agent's ENS fleet subname (<name>.kickoffseller.eth). Minted async on
+  // first signup — start from the session, then poll until it lands on-chain.
+  useEffect(() => {
+    const evm = auth?.profile?.walletEvm;
+    setSubname(auth?.profile?.ensSubname || null);
+    if (!evm || auth?.profile?.ensSubname) return;
+    let on = true, tries = 0;
+    const tick = () => {
+      if (!on || tries++ > 8) return;
+      fetch(`/api/ens/subname?address=${encodeURIComponent(evm)}`)
+        .then((r) => r.json())
+        .then((d) => { if (on && d.subname) setSubname(d.subname); else if (on) setTimeout(tick, 8000); })
+        .catch(() => { if (on) setTimeout(tick, 8000); });
+    };
+    tick();
     return () => { on = false; };
   }, [auth]);
 
@@ -154,6 +173,14 @@ export default function TelegramLogin({ onChange, es = false, role = 'seller' })
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 8.5, color: 'var(--muted)', lineHeight: 1.7 }}>
                   <div style={rowStyle}>EVM <span style={{ color: 'var(--text)' }}>{short(evm, 8, 4)}</span> {copyBtn(evm, 'evm')}</div>
                   <div style={rowStyle}>Hedera <span style={{ color: 'var(--accent)' }}>{short(hedera, 10)}</span> {copyBtn(hedera, 'hedera')}</div>
+                  {subname && (
+                    <div style={rowStyle}>
+                      <a href={`https://sepolia.app.ens.domains/${subname}`} target="_blank" rel="noreferrer" style={{ color: '#6E86FF', fontWeight: 700, textDecoration: 'none' }} title={es ? 'Subnombre ENS de la flota · resuelto en vivo' : 'ENS fleet subname · resolved live'}>
+                        🔗 {subname}
+                      </a>
+                      {copyBtn(subname, 'ens')}
+                    </div>
+                  )}
                   {(bal || auth.profile?.funded) && (
                     <div style={rowStyle}>
                       <span style={{ color: '#3FE08F', fontWeight: 700 }}>

@@ -8,6 +8,7 @@ import crypto from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { createManagedWallet } from './lib/wallet.js';
 import { provisionAndFund, faucetEnabled } from './lib/faucet.js';
+import { mintSubname, subnamesEnabled } from './ens-subname.js';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 // Session-signing secret. Falls back to a key derived from the bot token so no
@@ -85,6 +86,8 @@ export async function getOrCreateSellerWallet(profile, { operatorClient } = {}) 
     if (operatorClient && faucetEnabled() && !sellers[id].funded) {
       await fundSellerWallet(id, operatorClient);
     }
+    // Heal a wallet that never got its ENS fleet subname.
+    if (subnamesEnabled() && !sellers[id].ensSubname) void provisionSellerEns(id);
     return sellers[id];
   }
   const wallet = await createManagedWallet();
@@ -104,7 +107,37 @@ export async function getOrCreateSellerWallet(profile, { operatorClient } = {}) 
   if (operatorClient && faucetEnabled()) {
     await fundSellerWallet(id, operatorClient);
   }
+  // Mint this agent's ENS fleet subname (<name>.kickoffseller.eth) — fire-and-forget
+  // so login is never blocked by the on-chain Sepolia writes (~30s).
+  if (subnamesEnabled()) void provisionSellerEns(id);
   return sellers[id];
+}
+
+// Mint + persist the seller's ENS subname under the fleet parent. Best-effort.
+async function provisionSellerEns(id) {
+  const s = sellers[id];
+  if (!s?.evmAddress || s.ensSubname) return;
+  const r = await mintSubname({
+    label: s.username || `agent${id}`,
+    address: s.evmAddress,
+    role: 'seller',
+    hederaAccount: s.hederaAccount,
+    description: `Kickoff fleet agent${s.username ? ' @' + s.username : ''} — managed identity on Hedera + Sepolia.`,
+  });
+  if (r?.subname) {
+    sellers[id].ensSubname = r.subname;
+    persistSellers();
+  }
+}
+
+/** Look up a managed wallet's ENS fleet subname by EVM address (once minted). */
+export function getSubnameByAddress(evm) {
+  if (!evm) return null;
+  const want = String(evm).toLowerCase();
+  for (const s of Object.values(sellers)) {
+    if (s?.evmAddress?.toLowerCase() === want) return s.ensSubname || null;
+  }
+  return null;
 }
 
 async function fundSellerWallet(id, operatorClient) {

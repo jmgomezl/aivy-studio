@@ -9,7 +9,7 @@
 import { createPublicClient, http, namehash } from 'viem';
 import { sepolia } from 'viem/chains';
 
-const RPC = process.env.ENS_SEPOLIA_RPC || 'https://sepolia.drpc.org';
+const RPC = process.env.ENS_SEPOLIA_RPC || 'https://ethereum-sepolia-rpc.publicnode.com';
 const REGISTRY = '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e';
 const AGENT_NAME = process.env.ERC8004_AGENT_DOMAIN || 'kickoffseller.eth';
 
