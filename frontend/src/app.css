@@ -40,6 +40,8 @@
 .neg-emoji { font-size:24px; width:44px; height:44px; background:var(--card); border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .neg-item-name { font-size:14px; font-weight:700; margin-bottom:2px; }
 .neg-item-sub { font-size:10px; color:var(--muted); font-family:var(--mono); }
+.erc8004-badge { display:inline-block; margin-top:4px; font-family:var(--mono); font-size:9px; font-weight:700; color:var(--purple-light); background:color-mix(in srgb, var(--purple-light) 12%, transparent); border:1px solid color-mix(in srgb, var(--purple-light) 30%, transparent); border-radius:5px; padding:2px 7px; text-decoration:none; letter-spacing:.02em; }
+.erc8004-badge:hover { background:color-mix(in srgb, var(--purple-light) 20%, transparent); }
 .neg-price-area { margin-left:auto; text-align:right; }
 .neg-price-val { font-family:var(--mono); font-size:17px; font-weight:700; color:var(--yellow); }
 .neg-price-sub { font-size:9px; color:var(--muted); margin-top:1px; }

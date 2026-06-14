@@ -251,6 +251,23 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+// ── ERC-8004 agent identity (Trustless Agents — on-chain registry on Hedera EVM) ──
+app.get('/api/agent-identity', (_, res) => {
+  const registry = process.env.ERC8004_REGISTRY_ADDRESS || null;
+  if (!registry) return res.json({ enabled: false });
+  res.json({
+    enabled: true,
+    standard: 'ERC-8004',
+    chain: 'hedera-testnet-evm',
+    registry,
+    agentId: process.env.ERC8004_AGENT_ID || null,
+    agentDomain: process.env.ERC8004_AGENT_DOMAIN || null,
+    agentAddress: process.env.EVM_OPERATOR_ADDRESS || '0x44f7769bFB6E872f491CcF0B655Bee8c06A640a0',
+    registerTx: process.env.ERC8004_REGISTER_TX || null,
+    explorer: `https://hashscan.io/testnet/contract/${registry}`,
+  });
+});
+
 // ── Reputation (eBay-style trust: sales / purchases / tier) ──
 app.get('/api/reputation', (req, res) => {
   const rep = computeReputation(getPublicListings(), state.negotiations);
