@@ -10,6 +10,7 @@ import { useNegotiationFeed } from '../lib/useNegotiation.js';
 import NegotiationPanel from '../components/NegotiationPanel.jsx';
 import WorldGate from '../components/WorldGate.jsx';
 import TelegramLogin from '../components/TelegramLogin.jsx';
+import SellerChat from '../components/SellerChat.jsx';
 import { toggleLang } from '../i18n';
 
 const STRATEGIES = ['aggressive', 'charming', 'analytical', 'emotional'];
@@ -135,6 +136,12 @@ export default function Offer() {
         inputEnabled={mode === 'human' && (!worldEnabled || humanVerified)}
         onSubmitOffer={(price, argument) => submitOffer({ negotiationId, price, argument, buyer, authToken: tgAuth?.token })}
       />
+
+      {mode === 'human' && !n?.verdict && (
+        <div style={{ padding: '10px 14px 0' }}>
+          <SellerChat productName={activeItem?.name} />
+        </div>
+      )}
 
       {mode === 'human' && (
         <div style={{ padding: '10px 14px 0' }}>

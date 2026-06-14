@@ -20,6 +20,7 @@ import { validateWorkflow, WorkflowValidationError } from './workflow-schema.js'
 import { saveWorkflow, getWorkflow, listWorkflows } from './workflows.js';
 import { executeDryRun } from './workflow-executor.js';
 import { computeReputation } from './reputation.js';
+import { sellerChat } from './chat.js';
 import {
   telegramAuthEnabled,
   verifyTelegramAuth,
@@ -229,6 +230,24 @@ app.post('/api/auth/telegram', async (req, res) => {
   } catch (err) {
     console.error('[api/auth/telegram]', err.message);
     res.status(500).json({ ok: false, error: 'could not provision seller wallet' });
+  }
+});
+
+// ── Conversational chat with the seller agent (off-chain negotiation layer) ──
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { message, history, productName } = req.body || {};
+    if (!message?.trim()) return res.status(400).json({ error: 'message required' });
+    const name = productName || getActiveListing()?.name || process.env.PRODUCT_NAME || 'this item';
+    const reply = await sellerChat({
+      message: message.trim(),
+      history: Array.isArray(history) ? history : [],
+      productName: name,
+    });
+    res.json({ ok: true, reply });
+  } catch (err) {
+    console.error('[api/chat]', err.message);
+    res.status(500).json({ error: 'chat failed' });
   }
 });
 
