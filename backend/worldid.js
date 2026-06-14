@@ -7,12 +7,42 @@
 //   1. /rp-signature — sign a proof request with our RP signing key (secret)
 //   2. /verify       — forward the proof to POST /api/v4/verify/{rp_id}, then
 //                      enforce nullifier uniqueness
+import crypto from 'node:crypto';
 import { signRequest } from '@worldcoin/idkit-core/signing';
 
 const APP_ID = process.env.WORLD_APP_ID;          // app_...
 const RP_ID = process.env.WORLD_RP_ID;            // rp_...
 const SIGNING_KEY = process.env.RP_SIGNING_KEY;   // 32-byte hex (secret)
 const ACTION = process.env.WORLD_ACTION || 'make-offer';
+
+// Secret for the short-lived proof-of-human token (binds a verified nullifier to
+// a scope so the OFFER endpoint can enforce personhood SERVER-SIDE).
+const TOKEN_SECRET = SIGNING_KEY || process.env.SESSION_SECRET || 'kickoff-world-dev';
+const TOKEN_TTL_MS = 30 * 60 * 1000; // verify, then offer
+
+/** Mint a signed proof-of-human token after a successful World ID verification. */
+export function issueWorldToken(nullifier, scope) {
+  const body = Buffer.from(JSON.stringify({ nullifier, scope: scope ?? null, exp: Date.now() + TOKEN_TTL_MS })).toString('base64url');
+  const sig = crypto.createHmac('sha256', TOKEN_SECRET).update(body).digest('base64url');
+  return `${body}.${sig}`;
+}
+
+/** Verify a proof-of-human token (optionally bound to scope). Returns {nullifier} or null. */
+export function verifyWorldToken(token, scope) {
+  if (!token || typeof token !== 'string' || !token.includes('.')) return null;
+  const [body, sig] = token.split('.');
+  const expected = crypto.createHmac('sha256', TOKEN_SECRET).update(body).digest('base64url');
+  const a = Buffer.from(sig || ''), b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try {
+    const d = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    if (!d.exp || d.exp < Date.now()) return null;
+    if (scope && d.scope && d.scope !== scope) return null;
+    return { nullifier: d.nullifier };
+  } catch {
+    return null;
+  }
+}
 
 export const worldIdEnabled = !!(APP_ID && RP_ID && SIGNING_KEY);
 export const worldConfig = { appId: APP_ID, rpId: RP_ID, action: ACTION };

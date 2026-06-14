@@ -25,6 +25,7 @@ export default function Offer() {
   const [strategy, setStrategy] = useState('charming');
   const [agentStatus, setAgentStatus] = useState(null);
   const [humanVerified, setHumanVerified] = useState(false);
+  const [worldToken, setWorldToken] = useState(null);
   const [worldEnabled, setWorldEnabled] = useState(false);
   const [activeItem, setActiveItem] = useState(null);
   const [tgAuth, setTgAuth] = useState(null);
@@ -141,7 +142,7 @@ export default function Offer() {
         item={activeItem}
         buyerLabel={buyer}
         inputEnabled={mode === 'human' && (!verifyRequired || verified)}
-        onSubmitOffer={(price, argument) => submitOffer({ negotiationId, price, argument, buyer, authToken: tgAuth?.token, insured, escrow })}
+        onSubmitOffer={(price, argument) => submitOffer({ negotiationId, price, argument, buyer, authToken: tgAuth?.token, insured, escrow, worldToken })}
       />
 
       {mode === 'human' && !n?.verdict && (!verifyRequired || verified) && (
@@ -170,7 +171,7 @@ export default function Offer() {
           <VerifyGate
             worldEnabled={worldEnabled}
             scope={negotiationId}
-            onWorldVerified={() => setHumanVerified(true)}
+            onWorldVerified={(t) => { setHumanVerified(true); setWorldToken(t); }}
             onTgChange={setTgAuth}
           />
         </div>
@@ -190,7 +191,7 @@ export default function Offer() {
               <VerifyGate
                 worldEnabled={worldEnabled}
                 scope={negotiationId}
-                onWorldVerified={() => setHumanVerified(true)}
+                onWorldVerified={(t) => { setHumanVerified(true); setWorldToken(t); }}
                 onTgChange={setTgAuth}
               />
             </div>

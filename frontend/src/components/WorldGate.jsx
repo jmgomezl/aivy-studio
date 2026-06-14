@@ -3,7 +3,7 @@
 // widget (QR for World App) → on proof, our backend verifies via
 // /api/v4/verify/{rp_id} and enforces one-offer-per-human. Non-breaking: if
 // World ID isn't configured, the gate is invisible and offers flow normally.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { IDKitRequestWidget, proofOfHuman } from '@worldcoin/idkit';
 import { useTranslation } from 'react-i18next';
 
@@ -15,6 +15,7 @@ export default function WorldGate({ scope, onVerified }) {
   const [rpContext, setRpContext] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const tokenRef = useRef(null); // proof-of-human token from the backend verify
 
   useEffect(() => {
     fetch('/api/world/config').then((r) => r.json()).then(setCfg).catch(() => setCfg({ enabled: false }));
@@ -56,6 +57,8 @@ export default function WorldGate({ scope, onVerified }) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body.detail || 'verification failed');
     }
+    const body = await res.json().catch(() => ({}));
+    tokenRef.current = body.worldToken || null; // server-enforceable proof-of-human
   }
 
   return (
@@ -79,7 +82,7 @@ export default function WorldGate({ scope, onVerified }) {
           allow_legacy_proofs={true}
           preset={proofOfHuman({ signal: scope })}
           handleVerify={handleVerify}
-          onSuccess={() => { setOpen(false); onVerified?.(); }}
+          onSuccess={() => { setOpen(false); onVerified?.(tokenRef.current); }}
           onError={(e) => setError(e?.code || (es ? 'Verificación cancelada' : 'Verification cancelled'))}
         />
       )}

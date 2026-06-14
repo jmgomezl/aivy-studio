@@ -15,7 +15,7 @@ import {
 import { fetchTopicMessages } from '../agent/hedera.js';
 import { deployBuyerAgent, getSession } from './buyer-agent.js';
 import { createListing, getPublicListings, getActiveListing, markSold } from './listings.js';
-import { rpSignature, verifyProof, worldIdEnabled, worldConfig } from './worldid.js';
+import { rpSignature, verifyProof, worldIdEnabled, worldConfig, issueWorldToken, verifyWorldToken } from './worldid.js';
 import { validateWorkflow, WorkflowValidationError } from './workflow-schema.js';
 import { saveWorkflow, getWorkflow, listWorkflows } from './workflows.js';
 import { executeDryRun } from './workflow-executor.js';
@@ -142,12 +142,21 @@ app.get('/api/negotiations/:id', (req, res) => {
 // Judge/buyer submits an offer: published straight to the HCS-10 topic.
 app.post('/api/offer', async (req, res) => {
   try {
-    const { negotiationId, price, argument, buyer, authToken, insured, escrow } = req.body || {};
+    const { negotiationId, price, argument, buyer, authToken, insured, escrow, worldToken } = req.body || {};
     if (!negotiationId || !Number(price) || !argument?.trim()) {
       return res.status(400).json({ error: 'negotiationId, price and argument are required' });
     }
     // A verified Telegram session attributes the offer to that identity (can't be forged).
     const session = authToken ? verifySession(authToken) : null;
+    // Seller-gated listing: enforce proof-of-human SERVER-SIDE (not just in the UI).
+    // World ID (a verified, scope-bound nullifier) or a real Telegram account satisfies it.
+    const active = getActiveListing();
+    if (active?.requireHumanVerification) {
+      const world = verifyWorldToken(worldToken, negotiationId);
+      if (!world && !session) {
+        return res.status(403).json({ error: 'human verification required for this listing', requireHumanVerification: true });
+      }
+    }
     const offerBuyer = session ? `tg:${session.username || session.telegramId}` : buyer || 'anonymous';
     const tx = await new TopicMessageSubmitTransaction()
       .setTopicId(TOPIC)
@@ -226,7 +235,8 @@ app.post('/api/world/verify', async (req, res) => {
   if (!idkitResponse) return res.status(400).json({ error: 'idkitResponse required' });
   const result = await verifyProof(idkitResponse, scope);
   if (!result.ok) return res.status(400).json({ ok: false, detail: result.detail });
-  res.json({ ok: true, nullifier: result.nullifier });
+  // Mint a proof-of-human token so /api/offer can enforce personhood server-side.
+  res.json({ ok: true, nullifier: result.nullifier, worldToken: issueWorldToken(result.nullifier, scope) });
 });
 
 // ── Telegram Login (web seller identity, no wallet) ──
