@@ -29,29 +29,49 @@ export default function Offer() {
   const [worldToken, setWorldToken] = useState(null);
   const [worldEnabled, setWorldEnabled] = useState(false);
   const [activeItem, setActiveItem] = useState(null);
+  const [itemLoaded, setItemLoaded] = useState(false);
   const [tgAuth, setTgAuth] = useState(null);
   const [insured, setInsured] = useState(false);
   const [escrow, setEscrow] = useState(false);
+
+  // The product to negotiate is chosen on the marketplace: /offer?product=<listingId>.
+  const productId = useMemo(() => new URLSearchParams(window.location.search).get('product'), []);
 
   useEffect(() => {
     fetch('/api/world/config').then((r) => r.json()).then((c) => setWorldEnabled(!!c.enabled)).catch(() => {});
   }, []);
 
-  // Show the ACTUAL active listing (name + photo) — refetch on each new negotiation
-  // so a sold/changed item doesn't leave a stale (or hardcoded) product in the header.
+  // Resolve the selected listing (name + photo + gate + status). Bind to the
+  // ?product= id when present; otherwise fall back to the server's active listing
+  // (back-compat with the single-product flow). Refetch on each new negotiation
+  // so a freshly-sold item flips to the guarded state instead of staying biddable.
   useEffect(() => {
+    let cancelled = false;
     fetch('/api/listings')
       .then((r) => r.json())
       .then((d) => {
-        if (d.active?.id) {
-          const full = (d.listings || []).find((l) => l.id === d.active.id);
-          setActiveItem({ name: d.active.name, photoUrl: full?.photoUrl, requireHumanVerification: !!d.active.requireHumanVerification });
+        if (cancelled) return;
+        const listings = d.listings || [];
+        const chosen = productId
+          ? listings.find((l) => l.id === productId)
+          : (d.active?.id ? listings.find((l) => l.id === d.active.id) : null);
+        if (chosen) {
+          setActiveItem({
+            id: chosen.id, name: chosen.name, photoUrl: chosen.photoUrl,
+            requireHumanVerification: !!chosen.requireHumanVerification,
+            status: chosen.status, payoutToken: chosen.payoutToken,
+          });
+        } else if (productId) {
+          // A specific product was requested but it no longer exists → unavailable.
+          setActiveItem({ id: productId, missing: true });
         } else {
-          setActiveItem(null); // no active listing (e.g. sold) — don't fall back to a phantom item
+          setActiveItem(null); // no active listing — don't fall back to a phantom item
         }
+        setItemLoaded(true);
       })
-      .catch(() => {});
-  }, [negotiationId]);
+      .catch(() => { if (!cancelled) setItemLoaded(true); });
+    return () => { cancelled = true; };
+  }, [negotiationId, productId]);
 
   const tg = window.Telegram?.WebApp;
   const buyer = useMemo(() => {
@@ -66,12 +86,15 @@ export default function Offer() {
   }, [tg]);
 
   const n = negotiations[negotiationId];
+  // The selected product is sold or gone → no offering allowed (guard).
+  const unavailable = !!activeItem && (activeItem.status === 'sold' || activeItem.missing);
   // Per-listing human gate, satisfiable by EITHER method (World ID or Telegram).
   const verifyRequired = !!activeItem?.requireHumanVerification;
   const verified = humanVerified || !!tgAuth;
 
   async function deployAgent() {
     if (agentStatus === 'running') return;
+    if (unavailable) return; // sold/missing item — nothing to negotiate
     if (verifyRequired && !verified) return; // owner must be human-verified first
     const budget = Number(maxBudget);
     if (!budget || budget < 1) {
@@ -84,7 +107,7 @@ export default function Offer() {
       const res = await fetch('/api/deploy-buyer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ negotiationId, strategy, maxBudget: budget, instructions: agentInstructions }),
+        body: JSON.stringify({ negotiationId, listingId: activeItem?.id, strategy, maxBudget: budget, instructions: agentInstructions }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
     } catch (err) {
@@ -148,32 +171,49 @@ export default function Offer() {
         compact
         item={activeItem}
         buyerLabel={buyer}
-        inputEnabled={mode === 'human' && (!verifyRequired || verified)}
-        onSubmitOffer={(price, argument) => submitOffer({ negotiationId, price, argument, buyer, authToken: tgAuth?.token, insured, escrow, worldToken })}
+        inputEnabled={mode === 'human' && !unavailable && (!verifyRequired || verified)}
+        onSubmitOffer={(price, argument) => submitOffer({ negotiationId, listingId: activeItem?.id, price, argument, buyer, authToken: tgAuth?.token, insured, escrow, worldToken })}
       />
 
-      {mode === 'human' && !n?.verdict && (!verifyRequired || verified) && (
+      {unavailable && (
+        <div style={{ margin: '12px 14px', padding: '16px 14px', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
+          <div style={{ fontSize: 22, marginBottom: 6 }}>{activeItem.missing ? '🔍' : '✓'}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>
+            {activeItem.missing
+              ? (i18n.language === 'es' ? 'Producto no encontrado' : 'Product not found')
+              : (i18n.language === 'es' ? 'Este artículo ya se vendió' : 'This item has been sold')}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
+            {i18n.language === 'es' ? 'Explora otros productos en vivo del marketplace.' : 'Browse the other live products in the marketplace.'}
+          </div>
+          <a href="/" className="btn-primary" style={{ display: 'inline-block', padding: '8px 16px', fontSize: 12 }}>
+            {i18n.language === 'es' ? '← Ver marketplace' : '← Browse marketplace'}
+          </a>
+        </div>
+      )}
+
+      {mode === 'human' && !unavailable && !n?.verdict && (!verifyRequired || verified) && (
         <label style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '10px 14px 0', cursor: 'pointer', fontSize: 12.5, color: 'var(--text)' }}>
           <input type="checkbox" checked={insured} onChange={(e) => setInsured(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--accent)' }} />
           <span>🛡 {i18n.language === 'es' ? 'Asegurar el paquete (1 HBAR · cubre daño/pérdida)' : 'Insure the package (1 HBAR · covers damage/loss)'}</span>
         </label>
       )}
 
-      {mode === 'human' && !n?.verdict && (!verifyRequired || verified) && (
+      {mode === 'human' && !unavailable && !n?.verdict && (!verifyRequired || verified) && (
         <label style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '8px 14px 0', cursor: 'pointer', fontSize: 12.5, color: 'var(--text)' }}>
           <input type="checkbox" checked={escrow} onChange={(e) => setEscrow(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--accent)' }} />
           <span>🔒 {i18n.language === 'es' ? 'Bloquear fondos en garantía (on-chain · libera al cerrar, reembolsa si rechazan)' : 'Lock funds in escrow (on-chain · released on close, refunded if rejected)'}</span>
         </label>
       )}
 
-      {mode === 'human' && !n?.verdict && (
+      {mode === 'human' && !unavailable && !n?.verdict && (
         <div style={{ padding: '10px 14px 0' }}>
           <SellerChat productName={activeItem?.name} />
         </div>
       )}
 
       {/* Seller-required human gate (World ID or Telegram). */}
-      {mode === 'human' && verifyRequired && !verified && !n?.verdict && (
+      {mode === 'human' && !unavailable && verifyRequired && !verified && !n?.verdict && (
         <div style={{ padding: '10px 14px 0' }}>
           <VerifyGate
             worldEnabled={worldEnabled}
@@ -185,13 +225,13 @@ export default function Offer() {
       )}
 
       {/* Identity card when no gate is blocking (verified, or not required). */}
-      {mode === 'human' && (!verifyRequired || verified) && (
+      {mode === 'human' && !unavailable && (!verifyRequired || verified) && (
         <div style={{ padding: '10px 14px 0' }}>
           <TelegramLogin role="buyer" es={i18n.language === 'es'} onChange={setTgAuth} />
         </div>
       )}
 
-      {mode === 'agent' && !n?.verdict && (
+      {mode === 'agent' && !unavailable && !n?.verdict && (
         <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border)' }}>
           {verifyRequired && !verified && (
             <div style={{ marginBottom: 10 }}>

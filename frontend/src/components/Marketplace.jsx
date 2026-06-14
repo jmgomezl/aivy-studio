@@ -43,13 +43,12 @@ export default function Marketplace() {
     let cancelled = false;
     fetch('/api/listings')
       .then((r) => r.json())
-      .then(({ listings, active }) => {
+      .then(({ listings }) => {
         if (cancelled) return;
-        const activeId = active?.id;
         const real = (listings || []).map((l) => ({
           id: l.id, emoji: '🏷️', name: l.name, seller: l.seller, price: null,
-          tag: 'negotiator', real: true, active: l.id === activeId, onChain: l.onChain, photoUrl: l.photoUrl,
-          status: l.status, soldPrice: l.soldPrice, cat: l.category || 'Other',
+          tag: 'negotiator', real: true, onChain: l.onChain, photoUrl: l.photoUrl,
+          status: l.status, soldPrice: l.soldPrice, cat: l.category || 'Other', payoutToken: l.payoutToken,
         }));
         setItems([...real, ...SIMULATED.map((s, i) => ({ ...s, id: `sim-${i}` }))]);
       })
@@ -133,10 +132,8 @@ export default function Marketplace() {
               </span>
               {it.status === 'sold'
                 ? <span className="mkt-bid" style={{ color: 'var(--accent)', borderColor: 'rgba(0,255,135,.3)', cursor: 'default' }}>✓ {es ? 'Vendido' : 'Sold'}</span>
-                : it.real && it.active
-                ? <a href="/offer" className="mkt-bid">{es ? 'Ofertar' : 'Bid'}</a>
                 : it.real
-                ? <span className="mkt-bid" style={{ opacity: 0.5, cursor: 'default' }}>{es ? 'Finalizado' : 'Ended'}</span>
+                ? <a href={`/offer?product=${encodeURIComponent(it.id)}`} className="mkt-bid">{es ? 'Ofertar' : 'Bid'}</a>
                 : <a href="/arena" className="mkt-bid">{es ? 'Ver' : 'Watch'}</a>}
             </div>
           </div>

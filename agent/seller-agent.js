@@ -23,28 +23,67 @@ const POLL_MS = Number(process.env.AGENT_POLL_MS || 2500);
 
 import { existsSync, readFileSync } from 'node:fs';
 
-const ctx = {
+const RESERVES_FILE = 'data/reserves.json';
+const ACTIVE_FILE = 'data/active-listing.json';
+
+// Env defaults — the floor every defend context inherits when no listing matches.
+const DEFAULTS = {
   productName: process.env.PRODUCT_NAME || 'this item',
   currency: 'USD',
   minPrice: Number(process.env.SELLER_MIN_PRICE_HBAR || 25),
-  history: [],
+  sellerWalletEvm: null,
+  payoutToken: 'KUSD',
 };
 
-// If a seller created a listing, defend THAT reserve (written server-side by
-// the listings module). Falls back to the env default.
-function refreshActiveListing() {
-  try {
-    if (existsSync('data/active-listing.json')) {
-      const a = JSON.parse(readFileSync('data/active-listing.json', 'utf8'));
-      if (a?.minPriceHbar) {
-        ctx.minPrice = Number(a.minPriceHbar);
-        ctx.productName = a.name || ctx.productName;
-        ctx.activeListingId = a.id;
-        ctx.sellerWalletEvm = a.sellerWalletEvm || null;
-        ctx.payoutToken = a.payoutToken || 'KUSD';
-      }
+// Per-listing negotiation history (keyed by listingId; '_' for the legacy path) —
+// so concurrent negotiations on different products never bleed context.
+const histories = new Map();
+function historyFor(listingId) {
+  const k = listingId || '_';
+  if (!histories.has(k)) histories.set(k, []);
+  return histories.get(k);
+}
+
+function readJson(path) {
+  try { return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null; } catch { return null; }
+}
+
+// Resolve the defend context for an offer. Multi-product: look the listing's
+// SECRET reserve up by id from the server-written reserves file. Falls back to
+// the legacy single active-listing file, then the env default (back-compat).
+function resolveDefend(offer) {
+  const listingId = offer.listingId || null;
+  if (listingId) {
+    const reserves = readJson(RESERVES_FILE) || {};
+    const r = reserves[listingId];
+    if (r?.minPriceHbar) {
+      return {
+        listingId,
+        currency: 'USD',
+        minPrice: Number(r.minPriceHbar),
+        productName: r.name || DEFAULTS.productName,
+        sellerWalletEvm: r.sellerWalletEvm || null,
+        payoutToken: r.payoutToken || 'KUSD',
+        status: r.status || 'live',
+        history: historyFor(listingId),
+      };
     }
-  } catch {}
+  }
+  // Legacy fallback: the single active listing the old flow defended.
+  const a = readJson(ACTIVE_FILE);
+  if (a?.minPriceHbar) {
+    return {
+      listingId: a.id || listingId,
+      currency: 'USD',
+      minPrice: Number(a.minPriceHbar),
+      productName: a.name || DEFAULTS.productName,
+      sellerWalletEvm: a.sellerWalletEvm || null,
+      payoutToken: a.payoutToken || 'KUSD',
+      status: 'live',
+      history: historyFor(a.id || listingId),
+    };
+  }
+  return { ...DEFAULTS, listingId, status: 'live', history: historyFor(listingId) };
 }
 
 const client = agentClient();
@@ -52,8 +91,23 @@ let lastSeq = 0;
 let running = true;
 
 export async function handleOffer(offer) {
-  refreshActiveListing(); // defend the current listing's reserve
-  console.log(`[agent] offer #${offer.negotiationId} — ${offer.price} HBAR — "${offer.argument?.slice(0, 80)}" (reserve ${ctx.minPrice})`);
+  // Resolve THIS offer's listing reserve (local — never mutate shared state, so
+  // concurrent negotiations on different products stay isolated).
+  const ctx = resolveDefend(offer);
+  console.log(`[agent] offer #${offer.negotiationId} [${ctx.listingId || 'legacy'}] — ${offer.price} USD — "${offer.argument?.slice(0, 80)}" (reserve ${ctx.minPrice} USD)`);
+
+  // Guard: never negotiate a sold listing — publish a clean, non-leaking decline.
+  if (ctx.status === 'sold') {
+    await publishMessage(client, TOPIC, {
+      type: 'agent_verdict',
+      negotiationId: offer.negotiationId,
+      decision: 'reject',
+      counterPrice: null,
+      spokenVerdict: `${ctx.productName} has already been sold. This item is no longer available.`,
+    });
+    console.log(`[agent] offer on SOLD listing ${ctx.listingId} — declined`);
+    return { decision: 'reject', sold: true };
+  }
 
   await publishMessage(client, TOPIC, {
     type: 'agent_status',
@@ -126,10 +180,11 @@ export async function handleOffer(offer) {
       await publishMessage(client, TOPIC, {
         type: 'reveal',
         negotiationId: offer.negotiationId,
+        ...(ctx.listingId ? { listingId: ctx.listingId } : {}),
         minPrice: ctx.minPrice,
         acceptedPrice: offer.price,
       });
-      console.log(`[agent] settled ${settleAmount} HBAR via scheduled tx (${res.mode}) — schedule ${res.scheduleId}`);
+      console.log(`[agent] settled ${settleAmount} HBAR (symbolic cap; deal was ${offer.price} USD) via scheduled tx (${res.mode}) — schedule ${res.scheduleId}`);
 
       // Cross-asset leg: convert proceeds to the seller's preferred token via
       // Uniswap (best-effort, async — the EVM swap takes ~20s and must not block
@@ -192,6 +247,7 @@ async function loop() {
         if (m.json?.type === 'offer') {
           await handleOffer({
             negotiationId: m.json.negotiationId ?? String(m.sequence),
+            listingId: m.json.listingId ?? null,
             buyer: m.json.buyer,
             price: Number(m.json.price),
             argument: m.json.argument,

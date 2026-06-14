@@ -14,7 +14,7 @@ import {
 } from '@hashgraph/sdk';
 import { fetchTopicMessages } from '../agent/hedera.js';
 import { deployBuyerAgent, getSession } from './buyer-agent.js';
-import { createListing, getPublicListings, getActiveListing, markSold } from './listings.js';
+import { createListing, getPublicListings, getActiveListing, getListing, markSold } from './listings.js';
 import { rpSignature, verifyProof, worldIdEnabled, worldConfig, issueWorldToken, verifyWorldToken } from './worldid.js';
 import { validateWorkflow, WorkflowValidationError } from './workflow-schema.js';
 import { saveWorkflow, getWorkflow, listWorkflows } from './workflows.js';
@@ -129,9 +129,11 @@ function applyMessage(m) {
       break;
     case 'reveal': {
       n.reveal = event;
-      // Deal closed → mark the active listing SOLD with the accepted price.
-      const active = getActiveListing();
-      if (active?.id) markSold(active.id, j.acceptedPrice);
+      // Deal closed → mark THIS listing SOLD with the accepted price. Prefer the
+      // listingId carried on the reveal (multi-product); fall back to the legacy
+      // single active listing for older messages that predate per-listing binding.
+      const soldId = j.listingId || getActiveListing()?.id;
+      if (soldId) markSold(soldId, j.acceptedPrice);
       break;
     }
   }
@@ -152,16 +154,23 @@ app.get('/api/negotiations/:id', (req, res) => {
 // Judge/buyer submits an offer: published straight to the HCS-10 topic.
 app.post('/api/offer', async (req, res) => {
   try {
-    const { negotiationId, price, argument, buyer, authToken, insured, escrow, worldToken } = req.body || {};
+    const { negotiationId, listingId, price, argument, buyer, authToken, insured, escrow, worldToken } = req.body || {};
     if (!negotiationId || !Number(price) || !argument?.trim()) {
       return res.status(400).json({ error: 'negotiationId, price and argument are required' });
+    }
+    // Bind the offer to a specific listing (multi-product). Fall back to the legacy
+    // single active listing when the client doesn't send one (back-compat).
+    const target = (listingId && getListing(listingId)) || getActiveListing();
+    // Refuse offers against a sold/missing listing — don't let a phantom item
+    // fall through to the env reserve.
+    if (listingId && (!target || target.status === 'sold')) {
+      return res.status(409).json({ error: 'this listing is no longer available', sold: true });
     }
     // A verified Telegram session attributes the offer to that identity (can't be forged).
     const session = authToken ? verifySession(authToken) : null;
     // Seller-gated listing: enforce proof-of-human SERVER-SIDE (not just in the UI).
     // World ID (a verified, scope-bound nullifier) or a real Telegram account satisfies it.
-    const active = getActiveListing();
-    if (active?.requireHumanVerification) {
+    if (target?.requireHumanVerification) {
       const world = verifyWorldToken(worldToken, negotiationId);
       if (!world && !session) {
         return res.status(403).json({ error: 'human verification required for this listing', requireHumanVerification: true });
@@ -176,6 +185,7 @@ app.post('/api/offer', async (req, res) => {
           op: 'message',
           type: 'offer',
           negotiationId,
+          ...(target?.id ? { listingId: target.id } : {}),
           buyer: offerBuyer,
           price: Number(price),
           argument: argument.trim().slice(0, 1000),
@@ -202,15 +212,21 @@ app.post('/api/offer', async (req, res) => {
 // Deploy an autonomous buyer agent for a negotiation.
 app.post('/api/deploy-buyer', (req, res) => {
   try {
-    const { negotiationId, strategy = 'charming', maxBudget, instructions } = req.body || {};
+    const { negotiationId, listingId, strategy = 'charming', maxBudget, instructions } = req.body || {};
     if (!negotiationId || !Number(maxBudget)) {
       return res.status(400).json({ error: 'negotiationId and maxBudget are required' });
+    }
+    // Bind the autonomous buyer to a specific live listing; refuse sold/missing.
+    const target = (listingId && getListing(listingId)) || getActiveListing();
+    if (listingId && (!target || target.status === 'sold')) {
+      return res.status(409).json({ error: 'this listing is no longer available', sold: true });
     }
     const session = deployBuyerAgent({
       client: operator,
       topicId: TOPIC,
       state,
       negotiationId,
+      listingId: target?.id || null,
       strategy,
       maxBudget: Number(maxBudget),
       instructions,

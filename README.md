@@ -13,13 +13,25 @@ Ships with **Kickoff.bot**, the first pre-built template: a P2P agent-driven neg
 ✈️ [@cryptokickoffbot](https://t.me/cryptokickoffbot) — Telegram Mini App ·
 🧬 part of the [Aivy](https://github.com/jmgomezl/aivy) ecosystem ([aivylabs.xyz](https://aivylabs.xyz))
 
+## See it in action
+
+**A buyer picks a product, makes an offer with a story, and the seller agent decides — live on Hedera.** The secret reserve is committed on-chain and only revealed once the deal closes.
+
+![Kickoff negotiation — offer, on-chain reasoning, verdict, settlement, and the reveal](docs/media/kickoff-negotiation.gif)
+
 ## Products
 
 ### Kickoff.bot (standalone)
-A buyer makes an offer (Telegram Mini App or web) with a price **and an argument**. A seller agent — with a personality, a minimum price committed on-chain, and emotional criteria — decides autonomously whether to sell. The agent speaks its verdict via ElevenLabs voice. Everything executes on Hedera.
+A **multi-product marketplace**: browse the live listings, each with its own secret reserve committed on-chain, and tap any one to negotiate it. A buyer makes an offer (Telegram Mini App or web) with a price **and an argument**. A seller agent — with a personality, that listing's committed minimum, and emotional criteria — decides autonomously whether to sell. The agent speaks its verdict via ElevenLabs voice. Multiple listings can be negotiated concurrently, each defending its own reserve; when a deal closes, only that item is marked sold and its minimum is revealed. Everything executes on Hedera.
+
+![Multi-product marketplace — every live listing is biddable, sold items reveal their price](docs/media/kickoff-marketplace.gif)
+
+Each negotiation binds to a specific `listingId`: the offer and reveal messages carry it on HCS-10, the seller agent looks up that listing's reserve to defend, and a sold or removed item is guarded against further offers ("this item is sold — browse other products").
 
 ### Aivy Studio (canvas)
-Visual node graph (@xyflow/react) for composing agent workflows. The Kickoff template loads the full negotiation flow as connected nodes: seller agent, buyer agent, HCS-10 communication layer, HTS escrow, Ledger approval gate. Studio also exposes connector nodes for **ENS**, **OpenClaw**, and **x402**, so agent identity, external agents, and paid API/tool calls can be planned from the canvas before they are wired into a live runtime.
+Visual node graph (@xyflow/react) for composing agent workflows. The Kickoff template loads the full negotiation flow as connected nodes: seller agent, buyer agent, HCS-10 communication layer, HTS escrow, commitment contract, Ledger approval gate, and ElevenLabs voice. Press **Listen live** and the canvas replays the real HCS-10 events from a live deal across the graph. Studio also exposes connector nodes for **ENS**, **OpenClaw**, and **x402**, so agent identity, external agents, and paid API/tool calls can be planned from the canvas before they are wired into a live runtime.
+
+![Aivy Studio — load the Kickoff template and watch live on-chain HCS-10 events replay across the graph](docs/media/aivy-studio-kickoff-template.gif)
 
 ## Stack
 - **Hedera** — HCS-10/OpenConvAI (agent identity + messaging), HTS (escrow in HBAR), EVM smart contract (commitment scheme + collateral), Scheduled Transactions (Ledger pre-sign)

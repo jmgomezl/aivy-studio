@@ -30,17 +30,54 @@ import { decryptSecret } from './lib/keyvault.js';
 const RPC = process.env.HEDERA_JSON_RPC_URL || 'https://testnet.hashio.io/api';
 const ACTIVE_FILE = 'data/active-listing.json';
 const LISTINGS_FILE = 'data/listings.json';
+// Per-listing defend records (the SECRET reserve + everything the seller agent
+// needs to defend ANY listing by id). Server-only: gitignored under data/ and
+// never in the static allowlist, so the salt/reserve are never web-exposed.
+// Persisted to disk because the seller agent runs as a SEPARATE process and can
+// only share this state via the filesystem (it reads this file by listingId).
+const RESERVES_FILE = 'data/reserves.json';
 
 mkdirSync('data', { recursive: true });
 mkdirSync('uploads', { recursive: true });
 
 let listings = existsSync(LISTINGS_FILE) ? JSON.parse(readFileSync(LISTINGS_FILE, 'utf8')) : [];
-let secrets = {}; // listingId -> { minPriceHbar, salt } — server-only, never serialized to clients
+// listingId -> { minPriceHbar, salt, name, sellerWalletEvm, payoutToken,
+// requireHumanVerification, onChain, commitHash, status } — server-only.
+let reserves = existsSync(RESERVES_FILE) ? JSON.parse(readFileSync(RESERVES_FILE, 'utf8')) : {};
 
 function persist() {
   // Public listings only (no minPrice / salt).
   writeFileSync(LISTINGS_FILE, JSON.stringify(listings, null, 2));
 }
+
+function persistReserves() {
+  writeFileSync(RESERVES_FILE, JSON.stringify(reserves, null, 2));
+}
+
+// Rescue an already-live single listing after a deploy: `reserves` used to be
+// in-memory only, so a listing created before this change has no record. Seed it
+// from the legacy active-listing file (salt unknown — fine, the on-chain reveal
+// is a separate manual path and the agent only needs minPriceHbar to defend).
+(function seedReservesFromActive() {
+  try {
+    if (!existsSync(ACTIVE_FILE)) return;
+    const a = JSON.parse(readFileSync(ACTIVE_FILE, 'utf8'));
+    if (a?.id && a?.minPriceHbar && !reserves[a.id]) {
+      reserves[a.id] = {
+        minPriceHbar: Number(a.minPriceHbar),
+        salt: a.salt || null,
+        name: a.name || null,
+        sellerWalletEvm: a.sellerWalletEvm || null,
+        payoutToken: a.payoutToken || 'KUSD',
+        requireHumanVerification: !!a.requireHumanVerification,
+        onChain: !!a.onChain,
+        commitHash: a.commitHash || null,
+        status: 'live',
+      };
+      persistReserves();
+    }
+  } catch {}
+})();
 
 function operatorClient() {
   const c = Client.forTestnet();
@@ -61,6 +98,11 @@ export function getPublicListings() {
   return listings;
 }
 
+/** A single public listing by id (no secret fields). */
+export function getListing(id) {
+  return listings.find((x) => x.id === id) ?? null;
+}
+
 export function getActiveListing() {
   return existsSync(ACTIVE_FILE) ? JSON.parse(readFileSync(ACTIVE_FILE, 'utf8')) : null;
 }
@@ -72,6 +114,10 @@ export function markSold(listingId, soldPrice) {
   l.status = 'sold';
   l.soldPrice = soldPrice;
   persist();
+  if (reserves[listingId]) {
+    reserves[listingId].status = 'sold';
+    persistReserves();
+  }
   const active = getActiveListing();
   if (active?.id === listingId) {
     try { writeFileSync(ACTIVE_FILE, JSON.stringify({})); } catch {}
@@ -151,15 +197,36 @@ export async function createListing({ name, description, category, minPriceHbar,
     createdAt: id,
   };
   listings.unshift(listing);
-  secrets[id] = { minPriceHbar: Number(minPriceHbar), salt };
+  // Per-listing defend record — everything the seller agent needs to defend THIS
+  // listing's secret reserve by id (persisted so the agent process can read it).
+  reserves[id] = {
+    minPriceHbar: Number(minPriceHbar),
+    salt,
+    name,
+    sellerWalletEvm: sellerWalletEvm || null,
+    payoutToken: payout,
+    requireHumanVerification: !!requireHumanVerification,
+    onChain,
+    commitHash,
+    status: 'live',
+  };
   persist();
+  persistReserves();
 
-  // Tell the agent which reserve to defend (server-only file, same box).
-  writeFileSync(ACTIVE_FILE, JSON.stringify({ id, name, minPriceHbar: Number(minPriceHbar), commitHash, commitmentTx, onChain, requireHumanVerification: !!requireHumanVerification, sellerWalletEvm: sellerWalletEvm || null, payoutToken: payout }));
+  // Back-compat: keep the legacy single active-listing pointer (latest listing)
+  // so offers that don't carry a listingId still resolve a reserve to defend.
+  writeFileSync(ACTIVE_FILE, JSON.stringify({ id, name, minPriceHbar: Number(minPriceHbar), salt, commitHash, commitmentTx, onChain, requireHumanVerification: !!requireHumanVerification, sellerWalletEvm: sellerWalletEvm || null, payoutToken: payout }));
 
   return listing; // public — no minPrice/salt
 }
 
+/** Secret reserve (+ salt) for a listing. Server-only — never sent to clients. */
 export function getListingSecret(id) {
-  return secrets[id] ?? null;
+  const r = reserves[id];
+  return r ? { minPriceHbar: r.minPriceHbar, salt: r.salt } : null;
+}
+
+/** Full server-side defend record for a listing (reserve + product context). */
+export function getDefendRecord(id) {
+  return reserves[id] ?? null;
 }
