@@ -8,8 +8,6 @@
 // path is flaky for this name on Sepolia); this is the proven-reliable route.
 import { createPublicClient, http, namehash } from 'viem';
 import { sepolia } from 'viem/chains';
-import { addEnsContracts } from '@ensdomains/ensjs';
-import { getName } from '@ensdomains/ensjs/public';
 
 const RPC = process.env.ENS_SEPOLIA_RPC || 'https://sepolia.drpc.org';
 const REGISTRY = '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e';
@@ -22,10 +20,10 @@ const registryAbi = [{ name: 'resolver', type: 'function', stateMutability: 'vie
 const resolverAbi = [
   { name: 'addr', type: 'function', stateMutability: 'view', inputs: [{ type: 'bytes32' }], outputs: [{ type: 'address' }] },
   { name: 'text', type: 'function', stateMutability: 'view', inputs: [{ type: 'bytes32' }, { type: 'string' }], outputs: [{ type: 'string' }] },
+  { name: 'name', type: 'function', stateMutability: 'view', inputs: [{ type: 'bytes32' }], outputs: [{ type: 'string' }] },
 ];
 
 const client = createPublicClient({ chain: sepolia, transport: http(RPC) });
-const ensjsClient = createPublicClient({ chain: addEnsContracts(sepolia), transport: http(RPC) });
 
 // Tiny TTL cache so a busy Arena doesn't hammer the RPC (still live, just throttled).
 const cache = new Map();
@@ -63,13 +61,22 @@ export async function resolveAgent(name = AGENT_NAME) {
   });
 }
 
-/** Reverse-resolve an EVM address → its primary .eth name (or null). */
+/** Reverse-resolve an EVM address → its primary .eth name (or null).
+ *  Direct read of <addr>.addr.reverse → resolver.name(node), then forward-verify
+ *  the name's addr points back to the address (ENSIP-3 reverse record). */
 export async function reverseName(address) {
   if (!address || !/^0x[0-9a-fA-F]{40}$/.test(address)) return null;
   return memo('rev:' + address.toLowerCase(), async () => {
     try {
-      const r = await getName(ensjsClient, { address });
-      return r?.name || null;
+      const reverseNode = namehash(address.toLowerCase().slice(2) + '.addr.reverse');
+      const resolver = await client.readContract({ address: REGISTRY, abi: registryAbi, functionName: 'resolver', args: [reverseNode] });
+      if (!resolver || /^0x0+$/.test(resolver)) return null;
+      const name = await client.readContract({ address: resolver, abi: resolverAbi, functionName: 'name', args: [reverseNode] });
+      if (!name) return null;
+      // forward-verify: the claimed name must resolve back to this address
+      const fwd = await resolveAgent(name);
+      if (fwd?.address && fwd.address.toLowerCase() === address.toLowerCase()) return name;
+      return null;
     } catch {
       return null;
     }
